@@ -21,6 +21,7 @@ const (
 
 type RegistroMantenimiento struct {
 	ID          string              `json:"id"`
+	OrdenID     string              `json:"orden_id"`
 	ProductoID  string              `json:"producto_id"`
 	Tipo        TipoMantenimiento   `json:"tipo"`
 	Descripcion string              `json:"descripcion"`

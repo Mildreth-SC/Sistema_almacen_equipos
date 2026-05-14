@@ -1,7 +1,11 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+)
 
 func main() {
-	fmt.Println("TechStore API - iniciando...")
+	fmt.Println("Iniciando servidor...")
+	http.ListenAndServe(":8080", nil)
 }
