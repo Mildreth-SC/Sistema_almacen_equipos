@@ -1,4 +1,4 @@
-# Almacen de Equipos Tecnologicos
+# Sistema de Almacen de Equipos Tecnologicos
 
 API REST desarrollada en Go para administrar el proceso de soporte técnico de equipos tecnológicos en una tienda de cómputo ubicada en Portoviejo.
 
