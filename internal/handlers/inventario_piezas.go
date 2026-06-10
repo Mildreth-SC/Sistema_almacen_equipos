@@ -10,12 +10,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type InventarioHandler struct {
-	storage *storage.InventarioStorage
+type InventarioPiezasHandler struct {
+	almacen storage.Almacen
 }
 
-func NewInventarioHandler(s *storage.InventarioStorage) *InventarioHandler {
-	return &InventarioHandler{storage: s}
+func NewInventarioPiezasHandler(a storage.Almacen) *InventarioPiezasHandler {
+	return &InventarioPiezasHandler{almacen: a}
 }
 
 func validarPieza(p models.Pieza) string {
@@ -34,13 +34,13 @@ func validarPieza(p models.Pieza) string {
 	return ""
 }
 
-func (h *InventarioHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, h.storage.GetAll())
+func (h *InventarioPiezasHandler) GetAll(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, h.almacen.ListarPiezas())
 }
 
-func (h *InventarioHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+func (h *InventarioPiezasHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	p, ok := h.storage.GetByID(id)
+	p, ok := h.almacen.BuscarPiezaPorID(id)
 	if !ok {
 		writeError(w, http.StatusNotFound, "no encontrado")
 		return
@@ -49,7 +49,7 @@ func (h *InventarioHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, p)
 }
 
-func (h *InventarioHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (h *InventarioPiezasHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var p models.Pieza
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 		writeError(w, http.StatusBadRequest, "json invalido")
@@ -61,11 +61,11 @@ func (h *InventarioHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	creada := h.storage.Create(p)
+	creada := h.almacen.CrearPieza(p)
 	writeJSON(w, http.StatusCreated, creada)
 }
 
-func (h *InventarioHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (h *InventarioPiezasHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	var p models.Pieza
@@ -79,7 +79,7 @@ func (h *InventarioHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	actualizada, ok := h.storage.Update(id, p)
+	actualizada, ok := h.almacen.ActualizarPieza(id, p)
 	if !ok {
 		writeError(w, http.StatusNotFound, "no encontrado")
 		return
@@ -88,9 +88,9 @@ func (h *InventarioHandler) Update(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, actualizada)
 }
 
-func (h *InventarioHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (h *InventarioPiezasHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	if !h.storage.Delete(id) {
+	if !h.almacen.BorrarPieza(id) {
 		writeError(w, http.StatusNotFound, "no encontrado")
 		return
 	}
@@ -98,7 +98,7 @@ func (h *InventarioHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"mensaje": "eliminado"})
 }
 
-func (h *InventarioHandler) AjustarStock(w http.ResponseWriter, r *http.Request) {
+func (h *InventarioPiezasHandler) AjustarStock(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	var body struct {
@@ -109,7 +109,7 @@ func (h *InventarioHandler) AjustarStock(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	p, err := h.storage.AjustarStock(id, body.Delta)
+	p, err := h.almacen.AjustarStockPieza(id, body.Delta)
 	if err != nil {
 		if errors.Is(err, storage.ErrPiezaNoEncontrada) {
 			writeError(w, http.StatusNotFound, "no encontrado")
