@@ -23,7 +23,7 @@ const (
 )
 
 type Devolucion struct {
-	ID              string           `json:"id"`
+	ID              string           `json:"id" gorm:"primaryKey"`
 	OrdenID         string           `json:"orden_id"`
 	ProductoID      string           `json:"producto_id"`
 	ClienteNombre   string           `json:"cliente_nombre"`

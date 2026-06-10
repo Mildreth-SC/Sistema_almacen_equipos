@@ -9,7 +9,7 @@ const (
 )
 
 type Pieza struct {
-	ID          string      `json:"id"`
+	ID          string      `json:"id" gorm:"primaryKey"`
 	Nombre      string      `json:"nombre"`
 	Categoria   string      `json:"categoria"`
 	Marca       string      `json:"marca"`

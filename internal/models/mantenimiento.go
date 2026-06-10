@@ -20,7 +20,7 @@ const (
 )
 
 type RegistroMantenimiento struct {
-	ID          string              `json:"id"`
+	ID          string              `json:"id" gorm:"primaryKey"`
 	OrdenID     string              `json:"orden_id"`
 	ProductoID  string              `json:"producto_id"`
 	Tipo        TipoMantenimiento   `json:"tipo"`
