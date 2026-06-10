@@ -1,1 +1,7 @@
-cmd/api/almacen.db
+*.exe
+*.exe~
+*.test
+*.out
+vendor/
+.env
+*.db
