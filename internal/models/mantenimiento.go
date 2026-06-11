@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+// Tipos de mantenimiento disponibles en el sistema.
 type TipoMantenimiento string
 
 const (
@@ -10,6 +11,7 @@ const (
 	TipoRevision   TipoMantenimiento = "REVISION"
 )
 
+// Estados posibles de un mantenimiento.
 type EstadoMantenimiento string
 
 const (
@@ -18,6 +20,8 @@ const (
 	EstadoCompletado EstadoMantenimiento = "COMPLETADO"
 	EstadoCancelado  EstadoMantenimiento = "CANCELADO"
 )
+
+// RegistroMantenimiento representa un mantenimiento realizado a un equipo.
 
 type RegistroMantenimiento struct {
 	ID          string              `json:"id" gorm:"primaryKey"`
