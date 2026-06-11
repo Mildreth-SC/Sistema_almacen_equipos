@@ -17,6 +17,7 @@ func NewMantenimientoHandler(a storage.Almacen) *MantenimientoHandler {
 	return &MantenimientoHandler{almacen: a}
 }
 
+// validarMantenimiento verifica que los campos obligatorios sean válidos.
 func validarMantenimiento(m models.RegistroMantenimiento) string {
 	if m.Descripcion == "" {
 		return "la descripcion es requerida"
@@ -33,10 +34,12 @@ func validarMantenimiento(m models.RegistroMantenimiento) string {
 	return ""
 }
 
+// GetAll devuelve todos los mantenimientos registrados.
 func (h *MantenimientoHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, h.almacen.ListarMantenimientos())
 }
 
+// GetByID busca un mantenimiento por su identificador.
 func (h *MantenimientoHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	m, ok := h.almacen.BuscarMantenimientoPorID(id)
@@ -47,6 +50,7 @@ func (h *MantenimientoHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, m)
 }
 
+// Create registra un nuevo mantenimiento.
 func (h *MantenimientoHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var m models.RegistroMantenimiento
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
@@ -64,6 +68,7 @@ func (h *MantenimientoHandler) Create(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, creado)
 }
 
+// Update modifica un mantenimiento existente.
 func (h *MantenimientoHandler) Update(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var m models.RegistroMantenimiento
@@ -83,6 +88,7 @@ func (h *MantenimientoHandler) Update(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, actualizado)
 }
 
+// Delete elimina un mantenimiento existente.
 func (h *MantenimientoHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if !h.almacen.BorrarMantenimiento(id) {
