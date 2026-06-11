@@ -21,6 +21,7 @@ type AlmacenSQLite struct {
 func NewAlmacenSQLite(db *gorm.DB) *AlmacenSQLite {
 	return &AlmacenSQLite{db: db}
 }
+
 // MODULO REALIZO POR MILDRETH GUANOLUISA
 // --- Piezas ---
 
@@ -126,12 +127,14 @@ func (a *AlmacenSQLite) BorrarDevolucion(id string) bool {
 
 // --- Mantenimientos ---
 
+// ListarMantenimientos devuelve todos los registros de mantenimiento.
 func (a *AlmacenSQLite) ListarMantenimientos() []models.RegistroMantenimiento {
 	var lista []models.RegistroMantenimiento
 	a.db.Find(&lista)
 	return lista
 }
 
+// BuscarMantenimientoPorID busca un mantenimiento por su ID.
 func (a *AlmacenSQLite) BuscarMantenimientoPorID(id string) (models.RegistroMantenimiento, bool) {
 	var m models.RegistroMantenimiento
 	if err := a.db.First(&m, "id = ?", id).Error; err != nil {
@@ -140,6 +143,7 @@ func (a *AlmacenSQLite) BuscarMantenimientoPorID(id string) (models.RegistroMant
 	return m, true
 }
 
+// CrearMantenimiento agrega un nuevo registro de mantenimiento a la base de datos.
 func (a *AlmacenSQLite) CrearMantenimiento(m models.RegistroMantenimiento) models.RegistroMantenimiento {
 	m.ID = uuid.New().String()
 	if m.FechaInicio.IsZero() {
@@ -151,6 +155,7 @@ func (a *AlmacenSQLite) CrearMantenimiento(m models.RegistroMantenimiento) model
 	return m
 }
 
+// ActualizarMantenimiento modifica un registro de mantenimiento existente.
 func (a *AlmacenSQLite) ActualizarMantenimiento(id string, datos models.RegistroMantenimiento) (models.RegistroMantenimiento, bool) {
 	var existente models.RegistroMantenimiento
 	if err := a.db.First(&existente, "id = ?", id).Error; err != nil {
@@ -161,6 +166,7 @@ func (a *AlmacenSQLite) ActualizarMantenimiento(id string, datos models.Registro
 	return datos, true
 }
 
+// BorrarMantenimiento elimina un registro de mantenimiento por su ID.
 func (a *AlmacenSQLite) BorrarMantenimiento(id string) bool {
 	if err := a.db.Delete(&models.RegistroMantenimiento{}, "id = ?", id).Error; err != nil {
 		return false
