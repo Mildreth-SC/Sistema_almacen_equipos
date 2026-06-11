@@ -21,7 +21,7 @@ type AlmacenSQLite struct {
 func NewAlmacenSQLite(db *gorm.DB) *AlmacenSQLite {
 	return &AlmacenSQLite{db: db}
 }
-
+// MODULO REALIZO POR MILDRETH GUANOLUISA
 // --- Piezas ---
 
 func (a *AlmacenSQLite) ListarPiezas() []models.Pieza {
