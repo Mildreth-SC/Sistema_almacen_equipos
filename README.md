@@ -2,6 +2,18 @@
 
 API en Go para Portotech, una tienda de cómputo en Portoviejo. La idea es dejar de anotar todo a mano y tener en un solo lugar el inventario de piezas, las devoluciones y los mantenimientos de los equipos.
 
+## Repositorio y anexos
+
+**Código fuente (GitHub):**  
+https://github.com/Mildreth-SC/Sistema_almacen_equipos
+
+**Documentos y entregables:**
+
+- **Documento técnico** (Google Docs): [Sistema de Gestión de Soporte Técnico Portotech](https://docs.google.com/document/d/1U5uDGMQWNVDAJj211U_RJoV_4hpx0F0u5VdUIjA0Eu8/edit?usp=sharing)
+- **Video demo Postman — inventario de piezas** (Mildreth Guanoluisa): https://canva.link/bsz189339rbh0wa
+- **Video demo Postman — devoluciones** (Ivanna Zamora): _pendiente_
+- **Video demo Postman — mantenimientos** (José Mieles): _pendiente_
+
 ## El problema
 
 Hoy pierden historial, cuesta saber en qué estado está cada reparación y el cliente muchas veces no recibe información clara.
