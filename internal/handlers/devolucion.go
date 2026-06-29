@@ -1,3 +1,5 @@
+// MODULO REALIZADO POR IVANNA ZAMORA — Handler HTTP de devoluciones
+
 package handlers
 
 import (
@@ -5,86 +7,77 @@ import (
 	"net/http"
 
 	"github.com/Mildreth-SC/Sistema_almacen_equipos/internal/models"
-	"github.com/Mildreth-SC/Sistema_almacen_equipos/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
 
-type DevolucionHandler struct {
-	almacen storage.Almacen
+func (s *Server) ListarDevoluciones(w http.ResponseWriter, r *http.Request) {
+	estado := r.URL.Query().Get("estado")
+	RespondJSON(w, http.StatusOK, s.Devoluciones.Listar(estado))
 }
 
-func NewDevolucionHandler(a storage.Almacen) *DevolucionHandler {
-	return &DevolucionHandler{almacen: a}
-}
-
-func validarDevolucion(d models.Devolucion) string {
-	if d.ClienteNombre == "" {
-		return "el nombre del cliente es requerido"
-	}
-	if d.OrdenID == "" {
-		return "el orden_id es requerido"
-	}
-	if d.Motivo == "" {
-		return "el motivo es requerido"
-	}
-	return ""
-}
-
-func (h *DevolucionHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, h.almacen.ListarDevoluciones())
-}
-
-func (h *DevolucionHandler) GetByID(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ObtenerDevolucion(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	d, ok := h.almacen.BuscarDevolucionPorID(id)
-	if !ok {
-		writeError(w, http.StatusNotFound, "no encontrado")
+	d, err := s.Devoluciones.Obtener(id)
+	if err != nil {
+		RespondError(w, statusDeError(err), err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, d)
+	RespondJSON(w, http.StatusOK, d)
 }
 
-func (h *DevolucionHandler) Create(w http.ResponseWriter, r *http.Request) {
+func (s *Server) CrearDevolucion(w http.ResponseWriter, r *http.Request) {
 	var d models.Devolucion
 	if err := json.NewDecoder(r.Body).Decode(&d); err != nil {
-		writeError(w, http.StatusBadRequest, "json invalido")
+		RespondError(w, http.StatusBadRequest, "json invalido")
 		return
 	}
-	if msg := validarDevolucion(d); msg != "" {
-		writeError(w, http.StatusBadRequest, msg)
+	creada, err := s.Devoluciones.Crear(d)
+	if err != nil {
+		RespondError(w, statusDeError(err), err.Error())
 		return
 	}
-	if d.Estado == "" {
-		d.Estado = models.EstadoPendiente
-	}
-	creada := h.almacen.CrearDevolucion(d)
-	writeJSON(w, http.StatusCreated, creada)
+	RespondJSON(w, http.StatusCreated, creada)
 }
 
-func (h *DevolucionHandler) Update(w http.ResponseWriter, r *http.Request) {
+func (s *Server) ActualizarDevolucion(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var d models.Devolucion
 	if err := json.NewDecoder(r.Body).Decode(&d); err != nil {
-		writeError(w, http.StatusBadRequest, "json invalido")
+		RespondError(w, http.StatusBadRequest, "json invalido")
 		return
 	}
-	if msg := validarDevolucion(d); msg != "" {
-		writeError(w, http.StatusBadRequest, msg)
+	actualizada, err := s.Devoluciones.Actualizar(id, d)
+	if err != nil {
+		RespondError(w, statusDeError(err), err.Error())
 		return
 	}
-	actualizada, ok := h.almacen.ActualizarDevolucion(id, d)
-	if !ok {
-		writeError(w, http.StatusNotFound, "no encontrado")
-		return
-	}
-	writeJSON(w, http.StatusOK, actualizada)
+	RespondJSON(w, http.StatusOK, actualizada)
 }
 
-func (h *DevolucionHandler) Delete(w http.ResponseWriter, r *http.Request) {
+func (s *Server) CambiarEstadoDevolucion(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	if !h.almacen.BorrarDevolucion(id) {
-		writeError(w, http.StatusNotFound, "no encontrado")
+	var body struct {
+		Estado      models.EstadoDevolucion `json:"estado"`
+		Resolucion  string                  `json:"resolucion"`
+		AtendidoPor string                  `json:"atendido_por"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		RespondError(w, http.StatusBadRequest, "json invalido")
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]string{"mensaje": "eliminado"})
+	actualizada, err := s.Devoluciones.CambiarEstado(id, body.Estado, body.Resolucion, body.AtendidoPor)
+	if err != nil {
+		RespondError(w, statusDeError(err), err.Error())
+		return
+	}
+	RespondJSON(w, http.StatusOK, actualizada)
+}
+
+func (s *Server) BorrarDevolucion(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if err := s.Devoluciones.Borrar(id); err != nil {
+		RespondError(w, statusDeError(err), err.Error())
+		return
+	}
+	RespondJSON(w, http.StatusOK, map[string]string{"mensaje": "eliminado"})
 }
