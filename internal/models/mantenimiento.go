@@ -4,6 +4,7 @@ package models
 
 import "time"
 
+// Tipos de mantenimiento disponibles en el sistema.
 type TipoMantenimiento string
 
 const (
@@ -11,6 +12,7 @@ const (
 	TipoCorrectivo TipoMantenimiento = "CORRECTIVO"
 )
 
+// Estados posibles de un mantenimiento.
 type EstadoMantenimiento string
 
 const (

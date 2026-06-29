@@ -6,8 +6,16 @@ API REST en Go para **Portotech**, tienda de cómputo en Portoviejo. Centraliza 
 
 **Código fuente:** https://github.com/Mildreth-SC/Sistema_almacen_equipos
 
-- **Documento técnico:** [Sistema de Gestión de Soporte Técnico Portotech](https://docs.google.com/document/d/1U5uDGMQWNVDAJj211U_RJoV_4hpx0F0u5VdUIjA0Eu8/edit?usp=sharing)
-- **Video demo Postman — inventario** (Mildreth): https://canva.link/bsz189339rbh0wa
+**Documentos y entregables:**
+
+- **Documento técnico** (Google Docs): [Sistema de Gestión de Soporte Técnico Portotech](https://docs.google.com/document/d/1U5uDGMQWNVDAJj211U_RJoV_4hpx0F0u5VdUIjA0Eu8/edit?usp=sharing)
+- **Video demo Postman — inventario de piezas** (Mildreth Guanoluisa): https://canva.link/bsz189339rbh0wa
+- **Video demo Postman — devoluciones** (Ivanna Zamora): _pendiente_
+- **Video demo Postman — mantenimientos** (José Mieles): https://1drv.ms/f/c/a17811b6a61c315d/IgCumwojNjnXRYwofe-WlcTQAVoslMW9OtYk1AMPZNEN41Y
+
+## El problema
+
+Hoy pierden historial, cuesta saber en qué estado está cada reparación y el cliente muchas veces no recibe información clara.
 
 ## El equipo
 
