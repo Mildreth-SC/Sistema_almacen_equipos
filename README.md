@@ -1,36 +1,41 @@
 # Sistema de Almacén de Equipos Tecnológicos
 
-API en Go para Portotech, una tienda de cómputo en Portoviejo. La idea es dejar de anotar todo a mano y tener en un solo lugar el inventario de piezas, las devoluciones y los mantenimientos de los equipos.
+API REST en Go para **Portotech**, tienda de cómputo en Portoviejo. Centraliza inventario de piezas, devoluciones y mantenimientos de equipos.
 
 ## Repositorio y anexos
 
-**Código fuente (GitHub):**  
-https://github.com/Mildreth-SC/Sistema_almacen_equipos
+**Código fuente:** https://github.com/Mildreth-SC/Sistema_almacen_equipos
 
-**Documentos y entregables:**
-
-- **Documento técnico** (Google Docs): [Sistema de Gestión de Soporte Técnico Portotech](https://docs.google.com/document/d/1U5uDGMQWNVDAJj211U_RJoV_4hpx0F0u5VdUIjA0Eu8/edit?usp=sharing)
-- **Video demo Postman — inventario de piezas** (Mildreth Guanoluisa): https://canva.link/bsz189339rbh0wa
-- **Video demo Postman — devoluciones** (Ivanna Zamora): _pendiente_
-- **Video demo Postman — mantenimientos** (José Mieles): _pendiente_
-
-## El problema
-
-Hoy pierden historial, cuesta saber en qué estado está cada reparación y el cliente muchas veces no recibe información clara.
+- **Documento técnico:** [Sistema de Gestión de Soporte Técnico Portotech](https://docs.google.com/document/d/1U5uDGMQWNVDAJj211U_RJoV_4hpx0F0u5VdUIjA0Eu8/edit?usp=sharing)
+- **Video demo Postman — inventario** (Mildreth): https://canva.link/bsz189339rbh0wa
 
 ## El equipo
 
-Somos tres integrantes y cada uno tiene su módulo:
-
-- **Mildreth Guanoluisa** — inventario de piezas (`/api/v1/inventario-piezas`)
-- **Ivanna Zamora** — devoluciones y garantías (`/api/v1/devoluciones`)
-- **José Mieles** — mantenimiento de equipos (`/api/v1/mantenimientos`)
-
-Al inicio mi módulo iba a ser seguimiento técnico, pero lo cambiamos a inventario de piezas porque sin control de repuestos el taller no funciona bien. Los tres módulos ya tienen CRUD con Chi, validación y SQLite.
+| Integrante | Módulo | Ruta |
+|------------|--------|------|
+| Mildreth Guanoluisa | Inventario de piezas | `/api/v1/inventario-piezas` |
+| Ivanna Zamora | Devoluciones y garantías | `/api/v1/devoluciones` |
+| José Mieles | Mantenimiento de equipos | `/api/v1/mantenimientos` |
 
 ## Tecnologías
 
-Usamos Go, Chi como router, GORM con SQLite. La base se guarda en `cmd/api/almacen.db` y se crea sola al correr el servidor. También hay middleware de CORS para probar desde el navegador.
+- **Go** + **Chi** (router)
+- **GORM** + **SQLite** (`cmd/api/almacen.db`)
+- **JWT** + **bcrypt** (autenticación)
+- Arquitectura en capas: `handlers` → `service` → `storage`
+
+## Arquitectura
+
+```
+cmd/api/main.go          → wiring, migrate, router
+internal/models/         → structs de dominio
+internal/service/        → reglas de negocio y validaciones
+internal/storage/        → interfaces + GORM + memoria (tests)
+internal/handlers/       → HTTP/JSON
+internal/middleware/     → CORS + Auth JWT
+```
+
+Los tres módulos comparten el catálogo de **Pieza** mediante `pieza_id` en devoluciones y mantenimientos.
 
 ## Cómo correrlo
 
@@ -39,13 +44,62 @@ go mod tidy
 go run ./cmd/api
 ```
 
-Queda en `http://localhost:8080`. Si abres solo la raíz sale 404, es normal — la API está en `/api/v1/...`.
+Servidor en `http://localhost:8080`.
 
-La primera vez crea la base y mete datos de ejemplo si las tablas están vacías.
+Variable opcional para producción:
+
+```bash
+set JWT_SECRET=tu-secreto-seguro
+go run ./cmd/api
+```
+
+**Nota:** Si cambias el modelo de datos, borra `cmd/api/almacen.db` y reinicia para regenerar el esquema y los datos de ejemplo.
+
+```bash
+del cmd\api\almacen.db
+go run ./cmd/api
+```
+
+## Autenticación
+
+Todas las rutas CRUD requieren token JWT.
+
+### 1. Registrar usuario (primera vez)
+
+```http
+POST /api/v1/auth/registrar
+Content-Type: application/json
+
+{"email":"admin@portotech.com","password":"secret123"}
+```
+
+### 2. Login
+
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
+
+{"email":"admin@portotech.com","password":"secret123"}
+```
+
+Respuesta: `{"token":"eyJ..."}`
+
+### 3. Usar token en peticiones
+
+```
+Authorization: Bearer <token>
+```
 
 ## Endpoints
 
-Inventario de piezas (Mildreth):
+### Auth (públicos)
+
+```
+POST /api/v1/auth/registrar
+POST /api/v1/auth/login
+```
+
+### Inventario piezas (protegidos)
 
 ```
 GET    /api/v1/inventario-piezas
@@ -53,29 +107,119 @@ GET    /api/v1/inventario-piezas/{id}
 POST   /api/v1/inventario-piezas
 PUT    /api/v1/inventario-piezas/{id}
 DELETE /api/v1/inventario-piezas/{id}
-PATCH  /api/v1/inventario-piezas/{id}/stock   →  body: {"delta": 5}
+PATCH  /api/v1/inventario-piezas/{id}/stock   →  {"delta": 5}
 ```
 
-Devoluciones (Ivanna):
+### Devoluciones — Ivanna Zamora (protegidos)
 
 ```
-GET    /api/v1/devoluciones
+GET    /api/v1/devoluciones                    ?estado=PENDIENTE
 GET    /api/v1/devoluciones/{id}
 POST   /api/v1/devoluciones
 PUT    /api/v1/devoluciones/{id}
+PATCH  /api/v1/devoluciones/{id}/estado
 DELETE /api/v1/devoluciones/{id}
 ```
 
-Mantenimientos (José):
+Estados: `PENDIENTE`, `APROBADA`, `RECHAZADA`
+
+Resolver devolución (PATCH):
+
+```json
+{
+  "estado": "APROBADA",
+  "resolucion": "cambio",
+  "atendido_por": "Ivanna Zamora"
+}
+```
+
+### Mantenimientos — José Mieles (protegidos)
 
 ```
-GET    /api/v1/mantenimientos
+GET    /api/v1/mantenimientos                  ?estado=PENDIENTE
 GET    /api/v1/mantenimientos/{id}
 POST   /api/v1/mantenimientos
 PUT    /api/v1/mantenimientos/{id}
+PATCH  /api/v1/mantenimientos/{id}/estado
 DELETE /api/v1/mantenimientos/{id}
 ```
 
-## Cómo está organizado el código
+Flujo de estados: `PENDIENTE` → `EN_PROCESO` → `LISTO` → `ENTREGADO`
 
-El punto de entrada es `cmd/api/main.go`. Los modelos van en `internal/models/`, los handlers en `internal/handlers/`, y la capa de datos en `internal/storage/` con una interfaz `Almacen` y la implementación en SQLite. El CORS está en `internal/middleware/`.
+Avanzar estado (PATCH):
+
+```json
+{"estado": "EN_PROCESO"}
+```
+
+## Ejemplos de body JSON
+
+### Crear pieza
+
+```json
+{
+  "numero_serial": "SN-KING-RAM-8G",
+  "codigo_barras": "BAR-10042",
+  "nombre": "RAM DDR4 8GB",
+  "categoria": "RAM",
+  "marca": "Kingston",
+  "modelo": "DDR4-2666",
+  "garantia_meses": 12,
+  "stock": 10,
+  "stock_minimo": 2,
+  "precio_compra": 28.00,
+  "precio_venta": 45.00,
+  "proveedor": "TechParts SA",
+  "ubicacion": "Estante A3",
+  "estado": "DISPONIBLE"
+}
+```
+
+### Crear devolución
+
+```json
+{
+  "pieza_id": "<uuid-de-pieza>",
+  "cliente_nombre": "María López",
+  "cliente_telefono": "0991234567",
+  "numero_factura": "FAC-2024-089",
+  "motivo": "DEFECTUOSO",
+  "descripcion": "RAM no reconocida por la BIOS"
+}
+```
+
+Motivos: `DEFECTUOSO`, `EQUIVOCADO`, `GARANTIA`
+
+### Crear mantenimiento
+
+```json
+{
+  "cliente_nombre": "Carlos Ruiz",
+  "cliente_telefono": "0987654321",
+  "equipo_descripcion": "Laptop HP 15, negro",
+  "numero_serial": "HP-CLIENTE-9988",
+  "falla_reportada": "No enciende",
+  "tipo": "CORRECTIVO",
+  "tecnico": "Juan Pérez",
+  "costo": 45.00,
+  "anticipo": 20.00,
+  "pieza_id": "<uuid-opcional>"
+}
+```
+
+## Pruebas
+
+```bash
+go test ./...
+```
+
+## Códigos HTTP
+
+| Código | Cuándo |
+|--------|--------|
+| 200 | OK |
+| 201 | Recurso creado |
+| 400 | Validación fallida |
+| 401 | Sin token o token inválido |
+| 404 | Recurso no encontrado |
+| 409 | Duplicado, devolución ya resuelta o transición de estado inválida |
