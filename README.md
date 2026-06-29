@@ -207,11 +207,24 @@ Motivos: `DEFECTUOSO`, `EQUIVOCADO`, `GARANTIA`
 }
 ```
 
-## Pruebas
+## Pruebas (Actividad C1 — Testing)
+
+Cada integrante tiene **3 tipos de test** en su módulo:
+
+| Integrante | Service (mock) | Handler (httptest) | Repositorio (GORM `:memory:`) |
+|------------|----------------|--------------------|---------------------------------|
+| Mildreth | `service/pieza_mock_test.go` | `handlers/inventario_piezas_handler_test.go` | `storage/pieza_sqlite_test.go` |
+| Ivanna | `service/devolucion_mock_test.go` | `handlers/devolucion_handler_test.go` | `storage/devolucion_sqlite_test.go` |
+| José | `service/mantenimiento_mock_test.go` | `handlers/mantenimiento_handler_test.go` | `storage/mantenimiento_sqlite_test.go` |
 
 ```bash
-go test ./...
+go test ./... -cover
 ```
+
+- **Mock:** no guarda; verifica que dato inválido **no llega** al repositorio.
+- **Fake (`AlmacenMemoria`):** guarda en mapa para httptest sin SQLite real.
+- **GORM `:memory:`:** SQLite en RAM; crear → buscar/listar lo refleja.
+- **401:** rutas protegidas sin `Authorization: Bearer` responden 401.
 
 ## Códigos HTTP
 
