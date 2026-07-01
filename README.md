@@ -28,7 +28,8 @@ Hoy pierden historial, cuesta saber en qué estado está cada reparación y el c
 ## Tecnologías
 
 - **Go** + **Chi** (router)
-- **GORM** + **SQLite** (`cmd/api/almacen.db`)
+- **GORM** + **SQLite** (`db/almacen.db`)
+- **Frontend** demo (`frontend/index.html` → `http://localhost:8080/`)
 - **JWT** + **bcrypt** (autenticación)
 - Arquitectura en capas: `handlers` → `service` → `storage`
 
@@ -36,12 +37,16 @@ Hoy pierden historial, cuesta saber en qué estado está cada reparación y el c
 
 ```
 cmd/api/main.go          → wiring, migrate, router
+db/                      → SQLite (almacen.db, generado al correr)
+frontend/                → HTML demo del cliente (navegador)
 internal/models/         → structs de dominio
 internal/service/        → reglas de negocio y validaciones
-internal/storage/        → interfaces + GORM + memoria (tests)
+internal/storage/        → GORM (real) + AlmacenMemoria (FAKE en tests)
 internal/handlers/       → HTTP/JSON
 internal/middleware/     → CORS + Auth JWT
 ```
+
+**FAKE vs MOCK (tests C1):** `AlmacenMemoria` (FAKE) implementa la misma interfaz `Almacen` que SQLite y responde a crear/buscar/listar — lo usa `httptest` en handlers. Los **mock** en service no guardan; solo verifican que reglas inválidas no lleguen al repositorio.
 
 Los tres módulos comparten el catálogo de **Pieza** (`pieza_id`) y **Cliente** (`cliente_id`) en devoluciones y mantenimientos.
 
@@ -54,7 +59,7 @@ go mod tidy
 go run ./cmd/api
 ```
 
-Servidor en `http://localhost:8080`.
+Servidor en `http://localhost:8080`. Frontend demo en `http://localhost:8080/`.
 
 Variable opcional para producción:
 
@@ -63,10 +68,10 @@ set JWT_SECRET=tu-secreto-seguro
 go run ./cmd/api
 ```
 
-**Nota:** Si cambias el modelo de datos, borra `cmd/api/almacen.db` y reinicia para regenerar el esquema y los datos de ejemplo.
+**Nota:** Si cambias el modelo de datos, borra `db/almacen.db` y reinicia para regenerar el esquema y los datos de ejemplo.
 
 ```bash
-del cmd\api\almacen.db
+del db\almacen.db
 go run ./cmd/api
 ```
 

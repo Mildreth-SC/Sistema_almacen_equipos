@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portotech — Sistema de Almacén</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; max-width: 960px; margin: 0 auto; padding: 1.5rem; background: #f4f6f8; color: #1a1a2e; }
+    h1 { color: #0f3460; margin-bottom: 0.25rem; }
+    .sub { color: #666; margin-bottom: 1.5rem; }
+    section { background: #fff; border-radius: 8px; padding: 1rem 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    h2 { font-size: 1.1rem; margin-top: 0; color: #16213e; }
+    label { display: block; margin-top: 0.5rem; font-size: 0.85rem; }
+    input, select, textarea { width: 100%; padding: 0.45rem; margin-top: 0.2rem; border: 1px solid #ccc; border-radius: 4px; }
+    button { margin-top: 0.75rem; padding: 0.5rem 1rem; background: #0f3460; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #16213e; }
+    .tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    .tabs button { background: #e8ecf1; color: #333; margin: 0; }
+    .tabs button.active { background: #0f3460; color: #fff; }
+    .hidden { display: none; }
+    pre { background: #1a1a2e; color: #a8e6cf; padding: 1rem; border-radius: 6px; overflow: auto; font-size: 0.8rem; max-height: 320px; }
+    .ok { color: #2d6a4f; }
+    .err { color: #c1121f; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <h1>Portotech</h1>
+  <p class="sub">Demo frontend — API en <code id="apiBase">http://localhost:8080/api/v1</code></p>
+
+  <section id="loginSection">
+    <h2>1. Login (empleado)</h2>
+    <div class="grid">
+      <label>Email <input id="email" type="email" value="admin@portotech.com"></label>
+      <label>Contraseña <input id="password" type="password" value="secret123"></label>
+    </div>
+    <button type="button" onclick="login()">Iniciar sesión</button>
+    <button type="button" onclick="registrar()" style="background:#555;margin-left:0.5rem">Registrar</button>
+    <p id="loginMsg"></p>
+  </section>
+
+  <section id="appSection" class="hidden">
+    <p class="ok">Sesión activa. Token guardado.</p>
+    <div class="tabs">
+      <button type="button" class="active" data-tab="piezas">Piezas</button>
+      <button type="button" data-tab="clientes">Clientes</button>
+      <button type="button" data-tab="devoluciones">Devoluciones</button>
+      <button type="button" data-tab="mantenimientos">Mantenimientos</button>
+    </div>
+
+    <div id="tab-piezas">
+      <h2>Inventario piezas</h2>
+      <button type="button" onclick="listar('inventario-piezas')">Listar</button>
+      <label>Nombre <input id="p_nombre" value="SSD 256GB"></label>
+      <label>Serial <input id="p_serial" value="SN-WEB-001"></label>
+      <label>Código barras <input id="p_bar" value="BAR-WEB-001"></label>
+      <label>Stock <input id="p_stock" type="number" value="5"></label>
+      <button type="button" onclick="crearPieza()">Crear pieza</button>
+    </div>
+
+    <div id="tab-clientes" class="hidden">
+      <h2>Clientes</h2>
+      <button type="button" onclick="listar('clientes')">Listar</button>
+      <label>Nombre <input id="c_nombre" value="María López"></label>
+      <label>Cédula <input id="c_cedula" value="0923456789"></label>
+      <label>Teléfono <input id="c_tel" value="0991234567"></label>
+      <button type="button" onclick="crearCliente()">Crear cliente</button>
+    </div>
+
+    <div id="tab-devoluciones" class="hidden">
+      <h2>Devoluciones</h2>
+      <button type="button" onclick="listar('devoluciones')">Listar</button>
+      <label>Cliente ID <input id="d_cliente" placeholder="UUID del cliente"></label>
+      <label>Pieza ID <input id="d_pieza" placeholder="UUID de la pieza"></label>
+      <label>Factura <input id="d_factura" value="FAC-WEB-001"></label>
+      <label>Motivo
+        <select id="d_motivo">
+          <option>DEFECTUOSO</option>
+          <option>EQUIVOCADO</option>
+          <option>GARANTIA</option>
+        </select>
+      </label>
+      <button type="button" onclick="crearDevolucion()">Crear devolución</button>
+    </div>
+
+    <div id="tab-mantenimientos" class="hidden">
+      <h2>Mantenimientos</h2>
+      <button type="button" onclick="listar('mantenimientos')">Listar</button>
+      <label>Cliente ID <input id="m_cliente" placeholder="UUID del cliente"></label>
+      <label>Equipo <input id="m_equipo" value="Laptop HP 15"></label>
+      <label>Falla <input id="m_falla" value="No enciende"></label>
+      <label>Tipo
+        <select id="m_tipo"><option>CORRECTIVO</option><option>PREVENTIVO</option></select>
+      </label>
+      <label>Técnico <input id="m_tecnico" value="José Mieles"></label>
+      <button type="button" onclick="crearMantenimiento()">Crear mantenimiento</button>
+    </div>
+
+    <h2>Respuesta API</h2>
+    <pre id="output">{}</pre>
+  </section>
+
+  <script>
+    const API = 'http://localhost:8080/api/v1';
+    let token = localStorage.getItem('portotech_token') || '';
+
+    if (token) {
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('appSection').classList.remove('hidden');
+    }
+
+    document.querySelectorAll('.tabs button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        ['piezas','clientes','devoluciones','mantenimientos'].forEach(t => {
+          document.getElementById('tab-' + t).classList.toggle('hidden', btn.dataset.tab !== t);
+        });
+      });
+    });
+
+    function show(data, ok = true) {
+      document.getElementById('output').textContent = JSON.stringify(data, null, 2);
+    }
+
+    async function api(method, path, body) {
+      const opts = { method, headers: { 'Content-Type': 'application/json' } };
+      if (token) opts.headers['Authorization'] = 'Bearer ' + token;
+      if (body) opts.body = JSON.stringify(body);
+      const res = await fetch(API + path, opts);
+      const text = await res.text();
+      let json;
+      try { json = JSON.parse(text); } catch { json = { raw: text }; }
+      if (!res.ok) throw { status: res.status, ...json };
+      return json;
+    }
+
+    async function login() {
+      const msg = document.getElementById('loginMsg');
+      try {
+        const data = await api('POST', '/auth/login', {
+          email: document.getElementById('email').value,
+          password: document.getElementById('password').value
+        });
+        token = data.token;
+        localStorage.setItem('portotech_token', token);
+        msg.className = 'ok';
+        msg.textContent = 'Login OK';
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('appSection').classList.remove('hidden');
+        show(data);
+      } catch (e) {
+        msg.className = 'err';
+        msg.textContent = e.error || JSON.stringify(e);
+      }
+    }
+
+    async function registrar() {
+      try {
+        const data = await api('POST', '/auth/registrar', {
+          email: document.getElementById('email').value,
+          password: document.getElementById('password').value
+        });
+        token = data.token;
+        localStorage.setItem('portotech_token', token);
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('appSection').classList.remove('hidden');
+        show(data);
+      } catch (e) { show(e); }
+    }
+
+    async function listar(ruta) {
+      try { show(await api('GET', '/' + ruta)); } catch (e) { show(e); }
+    }
+
+    async function crearPieza() {
+      try {
+        const data = await api('POST', '/inventario-piezas', {
+          nombre: document.getElementById('p_nombre').value,
+          numero_serial: document.getElementById('p_serial').value,
+          codigo_barras: document.getElementById('p_bar').value,
+          stock: Number(document.getElementById('p_stock').value),
+          precio_compra: 20,
+          precio_venta: 35
+        });
+        show(data);
+      } catch (e) { show(e); }
+    }
+
+    async function crearCliente() {
+      try {
+        const data = await api('POST', '/clientes', {
+          nombre: document.getElementById('c_nombre').value,
+          cedula: document.getElementById('c_cedula').value,
+          telefono: document.getElementById('c_tel').value
+        });
+        document.getElementById('d_cliente').value = data.id;
+        document.getElementById('m_cliente').value = data.id;
+        show(data);
+      } catch (e) { show(e); }
+    }
+
+    async function crearDevolucion() {
+      try {
+        show(await api('POST', '/devoluciones', {
+          cliente_id: document.getElementById('d_cliente').value,
+          pieza_id: document.getElementById('d_pieza').value,
+          numero_factura: document.getElementById('d_factura').value,
+          motivo: document.getElementById('d_motivo').value,
+          descripcion: 'Devolución desde frontend'
+        }));
+      } catch (e) { show(e); }
+    }
+
+    async function crearMantenimiento() {
+      try {
+        show(await api('POST', '/mantenimientos', {
+          cliente_id: document.getElementById('m_cliente').value,
+          equipo_descripcion: document.getElementById('m_equipo').value,
+          falla_reportada: document.getElementById('m_falla').value,
+          tipo: document.getElementById('m_tipo').value,
+          tecnico: document.getElementById('m_tecnico').value,
+          costo: 45,
+          anticipo: 20
+        }));
+      } catch (e) { show(e); }
+    }
+  </script>
+</body>
+</html>

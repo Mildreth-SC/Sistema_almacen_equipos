@@ -8,7 +8,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// AlmacenMemoria implementa Almacen en memoria para pruebas unitarias.
+// AlmacenMemoria es el FAKE del repositorio: implementa la misma interfaz Almacen
+// que AlmacenSQLite y responde a los mismos estímulos (Crear, Buscar, Listar, Borrar),
+// pero guarda en mapas RAM en lugar de SQLite. Se usa en httptest del handler.
 type AlmacenMemoria struct {
 	mu             sync.RWMutex
 	piezas         map[string]models.Pieza

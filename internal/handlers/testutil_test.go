@@ -8,7 +8,8 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// nuevoRouterTest arma el servidor con fake en memoria (no SQLite real) para httptest.
+// nuevoRouterTest arma el servidor con AlmacenMemoria (FAKE): misma interfaz que SQLite,
+// responde crear/buscar/listar en RAM — el handler no nota la diferencia en httptest.
 func nuevoRouterTest(t *testing.T) (chi.Router, string) {
 	t.Helper()
 

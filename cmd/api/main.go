@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/Mildreth-SC/Sistema_almacen_equipos/internal/handlers"
 	"github.com/Mildreth-SC/Sistema_almacen_equipos/internal/middleware"
@@ -19,9 +20,14 @@ import (
 	"gorm.io/gorm"
 )
 
+const dbPath = "db/almacen.db"
+
 func main() {
 	// 1. GORM es dueño del esquema: abre la DB, migra y siembra.
-	db, err := gorm.Open(sqlite.Open("cmd/api/almacen.db"), &gorm.Config{})
+	if err := os.MkdirAll("db", 0o755); err != nil {
+		log.Fatal("no se pudo crear carpeta db:", err)
+	}
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
 		log.Fatal("no se pudo conectar a SQLite:", err)
 	}
@@ -55,7 +61,12 @@ func main() {
 
 	srv.RegisterRoutes(r)
 
+	r.Get("/", func(w http.ResponseWriter, req *http.Request) {
+		http.ServeFile(w, req, "frontend/index.html")
+	})
+
 	fmt.Println("Servidor en http://localhost:8080")
-	fmt.Println("Base de datos: cmd/api/almacen.db")
+	fmt.Println("Frontend:  http://localhost:8080/")
+	fmt.Println("Base de datos:", dbPath)
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
