@@ -23,10 +23,10 @@ const (
 // Devolucion registra cuando un cliente devuelve una pieza comprada.
 type Devolucion struct {
 	ID              string           `json:"id" gorm:"primaryKey"`
+	ClienteID       string           `json:"cliente_id" gorm:"not null;index"`
+	Cliente         Cliente          `json:"cliente,omitempty" gorm:"foreignKey:ClienteID;references:ID"`
 	PiezaID         string           `json:"pieza_id" gorm:"not null;index"`
 	Pieza           Pieza            `json:"pieza,omitempty" gorm:"foreignKey:PiezaID;references:ID"`
-	ClienteNombre   string           `json:"cliente_nombre"`
-	ClienteTelefono string           `json:"cliente_telefono"`
 	NumeroFactura   string           `json:"numero_factura"`
 	Motivo          MotivoDevolucion `json:"motivo"`
 	Descripcion     string           `json:"descripcion"`

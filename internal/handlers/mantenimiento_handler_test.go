@@ -24,9 +24,22 @@ func TestListarMantenimientos_SinToken_401(t *testing.T) {
 func TestCrearMantenimiento_ConToken_201(t *testing.T) {
 	router, token := nuevoRouterTest(t)
 
+	clienteBody := `{"nombre":"Carlos Ruiz","cedula":"0912345678","telefono":"0987654321"}`
+	reqCliente := httptest.NewRequest(http.MethodPost, "/api/v1/clientes", strings.NewReader(clienteBody))
+	reqCliente.Header.Set("Content-Type", "application/json")
+	reqCliente.Header.Set("Authorization", "Bearer "+token)
+	recCliente := httptest.NewRecorder()
+	router.ServeHTTP(recCliente, reqCliente)
+	if recCliente.Code != http.StatusCreated {
+		t.Fatalf("crear cliente: esperaba 201, obtuvo %d %s", recCliente.Code, recCliente.Body.String())
+	}
+	clienteJSON := recCliente.Body.String()
+	clienteIDStart := strings.Index(clienteJSON, `"id":"`) + 6
+	clienteIDEnd := strings.Index(clienteJSON[clienteIDStart:], `"`) + clienteIDStart
+	clienteID := clienteJSON[clienteIDStart:clienteIDEnd]
+
 	body := `{
-		"cliente_nombre": "Carlos Ruiz",
-		"cliente_telefono": "0987654321",
+		"cliente_id": "` + clienteID + `",
 		"equipo_descripcion": "Laptop HP 15, negro",
 		"numero_serial": "HP-HTTP-9988",
 		"falla_reportada": "No enciende",

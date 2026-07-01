@@ -26,8 +26,9 @@ func nuevoRouterTest(t *testing.T) (chi.Router, string) {
 
 	srv := NewServer(
 		service.NewPiezaService(mem),
-		service.NewDevolucionService(mem, mem),
-		service.NewMantenimientoService(mem, mem),
+		service.NewClienteService(mem, mem, mem),
+		service.NewDevolucionService(mem, mem, mem),
+		service.NewMantenimientoService(mem, mem, mem),
 		auth,
 	)
 	r := chi.NewRouter()

@@ -45,14 +45,37 @@ func (m *mockPiezaRepoDevolucion) ActualizarPieza(string, models.Pieza) (models.
 }
 func (m *mockPiezaRepoDevolucion) BorrarPieza(string) bool { return false }
 
+type mockClienteRepoDevolucion struct {
+	id string
+}
+
+func (m *mockClienteRepoDevolucion) ListarClientes() []models.Cliente { return nil }
+func (m *mockClienteRepoDevolucion) BuscarClientePorID(id string) (models.Cliente, bool) {
+	if id == m.id {
+		return models.Cliente{ID: id, Nombre: "Cliente test"}, true
+	}
+	return models.Cliente{}, false
+}
+func (m *mockClienteRepoDevolucion) BuscarClientePorCedula(string) (models.Cliente, bool) {
+	return models.Cliente{}, false
+}
+func (m *mockClienteRepoDevolucion) CrearCliente(models.Cliente) (models.Cliente, error) {
+	return models.Cliente{}, nil
+}
+func (m *mockClienteRepoDevolucion) ActualizarCliente(string, models.Cliente) (models.Cliente, bool) {
+	return models.Cliente{}, false
+}
+func (m *mockClienteRepoDevolucion) BorrarCliente(string) bool { return false }
+
 func TestDevolucionService_Mock_MotivoInvalido_NoLlamaRepositorio(t *testing.T) {
 	devMock := &mockDevolucionRepo{}
 	piezaMock := &mockPiezaRepoDevolucion{id: "pieza-123"}
-	svc := NewDevolucionService(devMock, piezaMock)
+	clienteMock := &mockClienteRepoDevolucion{id: "cliente-123"}
+	svc := NewDevolucionService(devMock, piezaMock, clienteMock)
 
 	_, err := svc.Crear(models.Devolucion{
 		PiezaID:       "pieza-123",
-		ClienteNombre: "María López",
+		ClienteID:     "cliente-123",
 		NumeroFactura: "FAC-001",
 		Motivo:        "MAL_FUNCIONAMIENTO", // motivo viejo, inválido
 	})

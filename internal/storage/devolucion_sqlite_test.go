@@ -24,7 +24,7 @@ func TestDevolucionSQLite_CrearYBuscar(t *testing.T) {
 
 	creada := almacen.CrearDevolucion(models.Devolucion{
 		PiezaID:       pieza.ID,
-		ClienteNombre: "Ana Torres",
+		ClienteID:     crearClienteSQLite(t, almacen).ID,
 		NumeroFactura: "FAC-GORM-001",
 		Motivo:        models.MotivoGarantia,
 		Descripcion:   "Pixeles muertos",
@@ -58,7 +58,7 @@ func TestDevolucionSQLite_ListarReflejaCreadas(t *testing.T) {
 	})
 
 	almacen.CrearDevolucion(models.Devolucion{
-		PiezaID: pieza.ID, ClienteNombre: "Pedro",
+		PiezaID: pieza.ID, ClienteID: crearClienteSQLite(t, almacen).ID,
 		NumeroFactura: "FAC-002", Motivo: models.MotivoEquivocado,
 	})
 

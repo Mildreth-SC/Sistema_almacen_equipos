@@ -8,33 +8,33 @@ import (
 	"github.com/Mildreth-SC/Sistema_almacen_equipos/internal/storage"
 )
 
-func setupDevolucion(t *testing.T) (*DevolucionService, models.Pieza) {
+func setupDevolucion(t *testing.T) (*DevolucionService, models.Pieza, models.Cliente) {
 	t.Helper()
 	repo := storage.NewAlmacenMemoria()
 	piezaSvc := NewPiezaService(repo)
-	devSvc := NewDevolucionService(repo, repo)
+	devSvc := NewDevolucionService(repo, repo, repo)
+	cliente := crearClienteTest(t, repo)
 
 	creada, err := piezaSvc.Crear(piezaValida())
 	if err != nil {
 		t.Fatalf("crear pieza: %v", err)
 	}
-	return devSvc, creada
+	return devSvc, creada, cliente
 }
 
-func devolucionValida(piezaID string) models.Devolucion {
+func devolucionValida(piezaID, clienteID string) models.Devolucion {
 	return models.Devolucion{
-		PiezaID:         piezaID,
-		ClienteNombre:   "María López",
-		ClienteTelefono: "0991234567",
-		NumeroFactura:   "FAC-2024-001",
-		Motivo:          models.MotivoDefectuoso,
-		Descripcion:     "Pieza no funciona",
+		PiezaID:       piezaID,
+		ClienteID:     clienteID,
+		NumeroFactura: "FAC-2024-001",
+		Motivo:        models.MotivoDefectuoso,
+		Descripcion:   "Pieza no funciona",
 	}
 }
 
 func TestDevolucionService_Crear_RequiereFactura(t *testing.T) {
-	devSvc, pieza := setupDevolucion(t)
-	d := devolucionValida(pieza.ID)
+	devSvc, pieza, cliente := setupDevolucion(t)
+	d := devolucionValida(pieza.ID, cliente.ID)
 	d.NumeroFactura = ""
 
 	_, err := devSvc.Crear(d)
@@ -44,8 +44,8 @@ func TestDevolucionService_Crear_RequiereFactura(t *testing.T) {
 }
 
 func TestDevolucionService_Crear_MotivoInvalido(t *testing.T) {
-	devSvc, pieza := setupDevolucion(t)
-	d := devolucionValida(pieza.ID)
+	devSvc, pieza, cliente := setupDevolucion(t)
+	d := devolucionValida(pieza.ID, cliente.ID)
 	d.Motivo = "OTRO"
 
 	_, err := devSvc.Crear(d)
@@ -55,11 +55,11 @@ func TestDevolucionService_Crear_MotivoInvalido(t *testing.T) {
 }
 
 func TestDevolucionService_RequierePiezaExistente(t *testing.T) {
-	devSvc, _ := setupDevolucion(t)
+	devSvc, _, cliente := setupDevolucion(t)
 
 	_, err := devSvc.Crear(models.Devolucion{
 		PiezaID:       "id-inexistente",
-		ClienteNombre: "Cliente Test",
+		ClienteID:     cliente.ID,
 		NumeroFactura: "FAC-002",
 		Motivo:        models.MotivoDefectuoso,
 	})
@@ -69,9 +69,9 @@ func TestDevolucionService_RequierePiezaExistente(t *testing.T) {
 }
 
 func TestDevolucionService_CambiarEstado_Aprobar(t *testing.T) {
-	devSvc, pieza := setupDevolucion(t)
+	devSvc, pieza, cliente := setupDevolucion(t)
 
-	creada, err := devSvc.Crear(devolucionValida(pieza.ID))
+	creada, err := devSvc.Crear(devolucionValida(pieza.ID, cliente.ID))
 	if err != nil {
 		t.Fatalf("crear: %v", err)
 	}
@@ -89,9 +89,9 @@ func TestDevolucionService_CambiarEstado_Aprobar(t *testing.T) {
 }
 
 func TestDevolucionService_CambiarEstado_YaResuelta(t *testing.T) {
-	devSvc, pieza := setupDevolucion(t)
+	devSvc, pieza, cliente := setupDevolucion(t)
 
-	creada, err := devSvc.Crear(devolucionValida(pieza.ID))
+	creada, err := devSvc.Crear(devolucionValida(pieza.ID, cliente.ID))
 	if err != nil {
 		t.Fatalf("crear: %v", err)
 	}
@@ -108,9 +108,9 @@ func TestDevolucionService_CambiarEstado_YaResuelta(t *testing.T) {
 }
 
 func TestDevolucionService_ListarPorEstado(t *testing.T) {
-	devSvc, pieza := setupDevolucion(t)
+	devSvc, pieza, cliente := setupDevolucion(t)
 
-	if _, err := devSvc.Crear(devolucionValida(pieza.ID)); err != nil {
+	if _, err := devSvc.Crear(devolucionValida(pieza.ID, cliente.ID)); err != nil {
 		t.Fatalf("crear: %v", err)
 	}
 

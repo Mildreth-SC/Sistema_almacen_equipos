@@ -28,10 +28,11 @@ func (m *mockMantenimientoRepo) CrearMantenimiento(models.RegistroMantenimiento)
 
 func TestMantenimientoService_Mock_TipoInvalido_NoLlamaRepositorio(t *testing.T) {
 	mock := &mockMantenimientoRepo{}
-	svc := NewMantenimientoService(mock, &mockPiezaRepoDevolucion{})
+	clienteMock := &mockClienteRepoDevolucion{id: "cliente-123"}
+	svc := NewMantenimientoService(mock, &mockPiezaRepoDevolucion{}, clienteMock)
 
 	_, err := svc.Crear(models.RegistroMantenimiento{
-		ClienteNombre:     "Carlos Ruiz",
+		ClienteID:         "cliente-123",
 		EquipoDescripcion: "Laptop HP 15",
 		FallaReportada:    "No enciende",
 		Tecnico:           "Juan Pérez",

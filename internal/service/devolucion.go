@@ -11,12 +11,13 @@ import (
 )
 
 type DevolucionService struct {
-	repo      storage.DevolucionRepository
-	piezaRepo storage.PiezaRepository
+	repo        storage.DevolucionRepository
+	piezaRepo   storage.PiezaRepository
+	clienteRepo storage.ClienteRepository
 }
 
-func NewDevolucionService(repo storage.DevolucionRepository, piezaRepo storage.PiezaRepository) *DevolucionService {
-	return &DevolucionService{repo: repo, piezaRepo: piezaRepo}
+func NewDevolucionService(repo storage.DevolucionRepository, piezaRepo storage.PiezaRepository, clienteRepo storage.ClienteRepository) *DevolucionService {
+	return &DevolucionService{repo: repo, piezaRepo: piezaRepo, clienteRepo: clienteRepo}
 }
 
 func (s *DevolucionService) Listar(estado string) []models.Devolucion {
@@ -49,6 +50,7 @@ func (s *DevolucionService) Crear(d models.Devolucion) (models.Devolucion, error
 		d.Estado = models.EstadoPendiente
 	}
 	d.Pieza = models.Pieza{}
+	d.Cliente = models.Cliente{}
 	creada := s.repo.CrearDevolucion(d)
 	if creada.ID == "" {
 		return models.Devolucion{}, ErrErrorInterno
@@ -61,6 +63,7 @@ func (s *DevolucionService) Actualizar(id string, d models.Devolucion) (models.D
 		return models.Devolucion{}, err
 	}
 	d.Pieza = models.Pieza{}
+	d.Cliente = models.Cliente{}
 	actualizada, ok := s.repo.ActualizarDevolucion(id, d)
 	if !ok {
 		return models.Devolucion{}, ErrNoEncontrado
@@ -98,6 +101,7 @@ func (s *DevolucionService) CambiarEstado(id string, estado models.EstadoDevoluc
 	d.AtendidoPor = strings.TrimSpace(atendidoPor)
 	d.FechaResolucion = &ahora
 	d.Pieza = models.Pieza{}
+	d.Cliente = models.Cliente{}
 
 	actualizada, ok := s.repo.ActualizarDevolucion(id, d)
 	if !ok {
@@ -114,8 +118,11 @@ func (s *DevolucionService) Borrar(id string) error {
 }
 
 func (s *DevolucionService) validarDevolucion(d models.Devolucion) error {
-	if strings.TrimSpace(d.ClienteNombre) == "" {
-		return ErrClienteVacio
+	if strings.TrimSpace(d.ClienteID) == "" {
+		return ErrClienteIDVacio
+	}
+	if _, ok := s.clienteRepo.BuscarClientePorID(d.ClienteID); !ok {
+		return ErrNoEncontrado
 	}
 	if strings.TrimSpace(d.PiezaID) == "" {
 		return ErrPiezaIDVacio

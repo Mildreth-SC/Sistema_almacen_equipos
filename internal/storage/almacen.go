@@ -29,11 +29,22 @@ type MantenimientoRepository interface {
 	BorrarMantenimiento(id string) bool
 }
 
-// Almacen agrupa los 3 repositorios.
+// ClienteRepository — clientes de la tienda (catálogo compartido).
+type ClienteRepository interface {
+	ListarClientes() []models.Cliente
+	BuscarClientePorID(id string) (models.Cliente, bool)
+	BuscarClientePorCedula(cedula string) (models.Cliente, bool)
+	CrearCliente(c models.Cliente) (models.Cliente, error)
+	ActualizarCliente(id string, datos models.Cliente) (models.Cliente, bool)
+	BorrarCliente(id string) bool
+}
+
+// Almacen agrupa los repositorios del negocio.
 type Almacen interface {
 	PiezaRepository
 	DevolucionRepository
 	MantenimientoRepository
+	ClienteRepository
 }
 
 var _ Almacen = (*AlmacenSQLite)(nil)

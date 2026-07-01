@@ -32,10 +32,12 @@ func statusDeError(err error) int {
 	case errors.Is(err, service.ErrCredencialesInvalidas):
 		return http.StatusUnauthorized
 	case errors.Is(err, service.ErrUsuarioYaExiste),
-		errors.Is(err, service.ErrRegistroDuplicado):
+		errors.Is(err, service.ErrRegistroDuplicado),
+		errors.Is(err, service.ErrCedulaDuplicada):
 		return http.StatusConflict
 	case errors.Is(err, service.ErrDevolucionYaResuelta),
-		errors.Is(err, service.ErrTransicionEstadoInvalida):
+		errors.Is(err, service.ErrTransicionEstadoInvalida),
+		errors.Is(err, service.ErrClienteEnUso):
 		return http.StatusConflict
 	case errors.Is(err, service.ErrStockInsuficiente),
 		errors.Is(err, service.ErrNombreVacio),
@@ -45,7 +47,9 @@ func statusDeError(err error) int {
 		errors.Is(err, service.ErrStockMinimoNegativo),
 		errors.Is(err, service.ErrPrecioNegativo),
 		errors.Is(err, service.ErrGarantiaNegativa),
-		errors.Is(err, service.ErrClienteVacio),
+		errors.Is(err, service.ErrNombreClienteVacio),
+		errors.Is(err, service.ErrCedulaVacia),
+		errors.Is(err, service.ErrClienteIDVacio),
 		errors.Is(err, service.ErrPiezaIDVacio),
 		errors.Is(err, service.ErrNumeroFacturaVacio),
 		errors.Is(err, service.ErrMotivoVacio),

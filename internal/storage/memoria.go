@@ -12,6 +12,7 @@ import (
 type AlmacenMemoria struct {
 	mu             sync.RWMutex
 	piezas         map[string]models.Pieza
+	clientes       map[string]models.Cliente
 	devoluciones   map[string]models.Devolucion
 	mantenimientos map[string]models.RegistroMantenimiento
 }
@@ -19,6 +20,7 @@ type AlmacenMemoria struct {
 func NewAlmacenMemoria() *AlmacenMemoria {
 	return &AlmacenMemoria{
 		piezas:         make(map[string]models.Pieza),
+		clientes:       make(map[string]models.Cliente),
 		devoluciones:   make(map[string]models.Devolucion),
 		mantenimientos: make(map[string]models.RegistroMantenimiento),
 	}
@@ -82,15 +84,104 @@ func (a *AlmacenMemoria) BorrarPieza(id string) bool {
 	return true
 }
 
+func (a *AlmacenMemoria) ListarClientes() []models.Cliente {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	out := make([]models.Cliente, 0, len(a.clientes))
+	for _, c := range a.clientes {
+		out = append(out, c)
+	}
+	return out
+}
+
+func (a *AlmacenMemoria) BuscarClientePorID(id string) (models.Cliente, bool) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	c, ok := a.clientes[id]
+	return c, ok
+}
+
+func (a *AlmacenMemoria) BuscarClientePorCedula(cedula string) (models.Cliente, bool) {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	for _, c := range a.clientes {
+		if c.Cedula == cedula {
+			return c, true
+		}
+	}
+	return models.Cliente{}, false
+}
+
+func (a *AlmacenMemoria) CrearCliente(c models.Cliente) (models.Cliente, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	for _, existente := range a.clientes {
+		if existente.Cedula == c.Cedula {
+			return models.Cliente{}, ErrDuplicado
+		}
+	}
+	now := time.Now()
+	c.ID = uuid.New().String()
+	if c.FechaRegistro.IsZero() {
+		c.FechaRegistro = now
+	}
+	a.clientes[c.ID] = c
+	return c, nil
+}
+
+func (a *AlmacenMemoria) ActualizarCliente(id string, datos models.Cliente) (models.Cliente, bool) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	existente, ok := a.clientes[id]
+	if !ok {
+		return models.Cliente{}, false
+	}
+	datos.ID = id
+	if datos.FechaRegistro.IsZero() {
+		datos.FechaRegistro = existente.FechaRegistro
+	}
+	a.clientes[id] = datos
+	return datos, true
+}
+
+func (a *AlmacenMemoria) BorrarCliente(id string) bool {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if _, ok := a.clientes[id]; !ok {
+		return false
+	}
+	delete(a.clientes, id)
+	return true
+}
+
+func (a *AlmacenMemoria) preloadDevolucion(d models.Devolucion) models.Devolucion {
+	if p, ok := a.piezas[d.PiezaID]; ok {
+		d.Pieza = p
+	}
+	if c, ok := a.clientes[d.ClienteID]; ok {
+		d.Cliente = c
+	}
+	return d
+}
+
+func (a *AlmacenMemoria) preloadMantenimiento(m models.RegistroMantenimiento) models.RegistroMantenimiento {
+	if m.PiezaID != "" {
+		if p, ok := a.piezas[m.PiezaID]; ok {
+			m.Pieza = p
+		}
+	}
+	if c, ok := a.clientes[m.ClienteID]; ok {
+		m.Cliente = c
+	}
+	return m
+}
+
 func (a *AlmacenMemoria) ListarDevoluciones() []models.Devolucion {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	out := make([]models.Devolucion, 0, len(a.devoluciones))
 	for _, d := range a.devoluciones {
-		if p, ok := a.piezas[d.PiezaID]; ok {
-			d.Pieza = p
-		}
-		out = append(out, d)
+		out = append(out, a.preloadDevolucion(d))
 	}
 	return out
 }
@@ -102,10 +193,7 @@ func (a *AlmacenMemoria) BuscarDevolucionPorID(id string) (models.Devolucion, bo
 	if !ok {
 		return models.Devolucion{}, false
 	}
-	if p, ok := a.piezas[d.PiezaID]; ok {
-		d.Pieza = p
-	}
-	return d, ok
+	return a.preloadDevolucion(d), ok
 }
 
 func (a *AlmacenMemoria) CrearDevolucion(d models.Devolucion) models.Devolucion {
@@ -145,12 +233,7 @@ func (a *AlmacenMemoria) ListarMantenimientos() []models.RegistroMantenimiento {
 	defer a.mu.RUnlock()
 	out := make([]models.RegistroMantenimiento, 0, len(a.mantenimientos))
 	for _, m := range a.mantenimientos {
-		if m.PiezaID != "" {
-			if p, ok := a.piezas[m.PiezaID]; ok {
-				m.Pieza = p
-			}
-		}
-		out = append(out, m)
+		out = append(out, a.preloadMantenimiento(m))
 	}
 	return out
 }
@@ -162,12 +245,7 @@ func (a *AlmacenMemoria) BuscarMantenimientoPorID(id string) (models.RegistroMan
 	if !ok {
 		return models.RegistroMantenimiento{}, false
 	}
-	if m.PiezaID != "" {
-		if p, ok := a.piezas[m.PiezaID]; ok {
-			m.Pieza = p
-		}
-	}
-	return m, ok
+	return a.preloadMantenimiento(m), ok
 }
 
 func (a *AlmacenMemoria) CrearMantenimiento(m models.RegistroMantenimiento) models.RegistroMantenimiento {

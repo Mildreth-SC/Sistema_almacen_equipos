@@ -1,0 +1,9 @@
+#!/bin/sh
+# Copiar a .git/hooks/prepare-commit-msg y chmod +x (o renombrar en Windows con Git Bash).
+# Quita Co-authored-by: Cursor de los mensajes de commit.
+if [ -f "$1" ]; then
+	grep -v 'cursoragent@cursor.com' "$1" > "$1.cursor-strip" || true
+	mv "$1.cursor-strip" "$1"
+	grep -v 'Co-authored-by: Cursor' "$1" > "$1.cursor-strip" || true
+	mv "$1.cursor-strip" "$1"
+fi

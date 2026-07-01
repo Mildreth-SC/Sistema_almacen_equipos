@@ -6,9 +6,10 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// Server agrupa los services de los 3 módulos + auth.
+// Server agrupa los services de los módulos + auth.
 type Server struct {
 	Piezas         *service.PiezaService
+	Clientes       *service.ClienteService
 	Devoluciones   *service.DevolucionService
 	Mantenimientos *service.MantenimientoService
 	Auth           *service.AuthService
@@ -16,12 +17,14 @@ type Server struct {
 
 func NewServer(
 	piezas *service.PiezaService,
+	clientes *service.ClienteService,
 	devoluciones *service.DevolucionService,
 	mantenimientos *service.MantenimientoService,
 	auth *service.AuthService,
 ) *Server {
 	return &Server{
 		Piezas:         piezas,
+		Clientes:       clientes,
 		Devoluciones:   devoluciones,
 		Mantenimientos: mantenimientos,
 		Auth:           auth,
@@ -45,6 +48,14 @@ func (s *Server) RegisterRoutes(r chi.Router) {
 				r.Put("/{id}", s.ActualizarPieza)
 				r.Delete("/{id}", s.BorrarPieza)
 				r.Patch("/{id}/stock", s.AjustarStockPieza)
+			})
+
+			r.Route("/clientes", func(r chi.Router) {
+				r.Get("/", s.ListarClientes)
+				r.Get("/{id}", s.ObtenerCliente)
+				r.Post("/", s.CrearCliente)
+				r.Put("/{id}", s.ActualizarCliente)
+				r.Delete("/{id}", s.BorrarCliente)
 			})
 
 			// Módulo devoluciones — Ivanna Zamora

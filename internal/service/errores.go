@@ -16,8 +16,14 @@ var (
 	ErrStockInsuficiente   = errors.New("stock insuficiente")
 	ErrRegistroDuplicado   = errors.New("numero_serial o codigo_barras ya existe")
 
+	// Clientes
+	ErrNombreClienteVacio = errors.New("el nombre del cliente es requerido")
+	ErrCedulaVacia        = errors.New("la cedula es requerida")
+	ErrCedulaDuplicada    = errors.New("ya existe un cliente con esa cedula")
+	ErrClienteEnUso       = errors.New("el cliente tiene devoluciones o mantenimientos asociados")
+
 	// Devoluciones — Ivanna Zamora
-	ErrClienteVacio              = errors.New("el nombre del cliente es requerido")
+	ErrClienteIDVacio            = errors.New("el cliente_id es requerido")
 	ErrPiezaIDVacio              = errors.New("el pieza_id es requerido")
 	ErrNumeroFacturaVacio        = errors.New("el numero_factura es requerido")
 	ErrMotivoVacio               = errors.New("el motivo es requerido")

@@ -13,7 +13,7 @@ func TestMantenimientoSQLite_CrearYBuscar(t *testing.T) {
 	almacen := NewAlmacenSQLite(db)
 
 	creado := almacen.CrearMantenimiento(models.RegistroMantenimiento{
-		ClienteNombre:     "Luis Méndez",
+		ClienteID:         crearClienteSQLite(t, almacen).ID,
 		EquipoDescripcion: "Desktop Dell",
 		FallaReportada:    "Pantalla azul",
 		Tipo:              models.TipoCorrectivo,
@@ -40,7 +40,7 @@ func TestMantenimientoSQLite_ListarReflejaCreados(t *testing.T) {
 	almacen := NewAlmacenSQLite(db)
 
 	almacen.CrearMantenimiento(models.RegistroMantenimiento{
-		ClienteNombre: "Cliente", EquipoDescripcion: "Laptop",
+		ClienteID: crearClienteSQLite(t, almacen).ID, EquipoDescripcion: "Laptop",
 		FallaReportada: "Lento", Tipo: models.TipoPreventivo,
 		Tecnico: "Ana", Costo: 20,
 	})

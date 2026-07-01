@@ -24,6 +24,20 @@ func TestListarDevoluciones_SinToken_401(t *testing.T) {
 func TestCrearDevolucion_ConToken_201(t *testing.T) {
 	router, token := nuevoRouterTest(t)
 
+	clienteBody := `{"nombre":"María López","cedula":"0923456789","telefono":"0991234567"}`
+	reqCliente := httptest.NewRequest(http.MethodPost, "/api/v1/clientes", strings.NewReader(clienteBody))
+	reqCliente.Header.Set("Content-Type", "application/json")
+	reqCliente.Header.Set("Authorization", "Bearer "+token)
+	recCliente := httptest.NewRecorder()
+	router.ServeHTTP(recCliente, reqCliente)
+	if recCliente.Code != http.StatusCreated {
+		t.Fatalf("crear cliente: esperaba 201, obtuvo %d %s", recCliente.Code, recCliente.Body.String())
+	}
+	clienteJSON := recCliente.Body.String()
+	clienteIDStart := strings.Index(clienteJSON, `"id":"`) + 6
+	clienteIDEnd := strings.Index(clienteJSON[clienteIDStart:], `"`) + clienteIDStart
+	clienteID := clienteJSON[clienteIDStart:clienteIDEnd]
+
 	// Primero crear pieza (devolución requiere pieza_id válido)
 	piezaBody := `{
 		"numero_serial": "SN-DEV-001",
@@ -50,8 +64,7 @@ func TestCrearDevolucion_ConToken_201(t *testing.T) {
 
 	devBody := `{
 		"pieza_id": "` + piezaID + `",
-		"cliente_nombre": "María López",
-		"cliente_telefono": "0991234567",
+		"cliente_id": "` + clienteID + `",
 		"numero_factura": "FAC-HTTP-001",
 		"motivo": "DEFECTUOSO",
 		"descripcion": "No funciona"

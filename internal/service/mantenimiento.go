@@ -11,12 +11,13 @@ import (
 )
 
 type MantenimientoService struct {
-	repo      storage.MantenimientoRepository
-	piezaRepo storage.PiezaRepository
+	repo        storage.MantenimientoRepository
+	piezaRepo   storage.PiezaRepository
+	clienteRepo storage.ClienteRepository
 }
 
-func NewMantenimientoService(repo storage.MantenimientoRepository, piezaRepo storage.PiezaRepository) *MantenimientoService {
-	return &MantenimientoService{repo: repo, piezaRepo: piezaRepo}
+func NewMantenimientoService(repo storage.MantenimientoRepository, piezaRepo storage.PiezaRepository, clienteRepo storage.ClienteRepository) *MantenimientoService {
+	return &MantenimientoService{repo: repo, piezaRepo: piezaRepo, clienteRepo: clienteRepo}
 }
 
 func (s *MantenimientoService) Listar(estado string) []models.RegistroMantenimiento {
@@ -49,6 +50,7 @@ func (s *MantenimientoService) Crear(m models.RegistroMantenimiento) (models.Reg
 		m.Estado = models.MantenimientoPendiente
 	}
 	m.Pieza = models.Pieza{}
+	m.Cliente = models.Cliente{}
 	creado := s.repo.CrearMantenimiento(m)
 	if creado.ID == "" {
 		return models.RegistroMantenimiento{}, ErrErrorInterno
@@ -61,6 +63,7 @@ func (s *MantenimientoService) Actualizar(id string, m models.RegistroMantenimie
 		return models.RegistroMantenimiento{}, err
 	}
 	m.Pieza = models.Pieza{}
+	m.Cliente = models.Cliente{}
 	actualizado, ok := s.repo.ActualizarMantenimiento(id, m)
 	if !ok {
 		return models.RegistroMantenimiento{}, ErrNoEncontrado
@@ -91,6 +94,7 @@ func (s *MantenimientoService) CambiarEstado(id string, nuevoEstado models.Estad
 		m.FechaEntrega = &ahora
 	}
 	m.Pieza = models.Pieza{}
+	m.Cliente = models.Cliente{}
 
 	actualizado, ok := s.repo.ActualizarMantenimiento(id, m)
 	if !ok {
@@ -107,8 +111,11 @@ func (s *MantenimientoService) Borrar(id string) error {
 }
 
 func (s *MantenimientoService) validarMantenimiento(m models.RegistroMantenimiento) error {
-	if strings.TrimSpace(m.ClienteNombre) == "" {
-		return ErrClienteVacio
+	if strings.TrimSpace(m.ClienteID) == "" {
+		return ErrClienteIDVacio
+	}
+	if _, ok := s.clienteRepo.BuscarClientePorID(m.ClienteID); !ok {
+		return ErrNoEncontrado
 	}
 	if strings.TrimSpace(m.EquipoDescripcion) == "" {
 		return ErrEquipoDescripcionVacia

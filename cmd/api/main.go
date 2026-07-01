@@ -27,6 +27,7 @@ func main() {
 	}
 	if err := db.AutoMigrate(
 		&models.Pieza{},
+		&models.Cliente{},
 		&models.Devolucion{},
 		&models.RegistroMantenimiento{},
 		&models.Usuario{},
@@ -40,10 +41,11 @@ func main() {
 
 	// 2. Capa de servicios + server con inyección de dependencias.
 	piezaSvc := service.NewPiezaService(almacen)
-	devolucionSvc := service.NewDevolucionService(almacen, almacen)
-	mantenimientoSvc := service.NewMantenimientoService(almacen, almacen)
+	clienteSvc := service.NewClienteService(almacen, almacen, almacen)
+	devolucionSvc := service.NewDevolucionService(almacen, almacen, almacen)
+	mantenimientoSvc := service.NewMantenimientoService(almacen, almacen, almacen)
 	authSvc := service.NewAuthService(usuarioRepo)
-	srv := handlers.NewServer(piezaSvc, devolucionSvc, mantenimientoSvc, authSvc)
+	srv := handlers.NewServer(piezaSvc, clienteSvc, devolucionSvc, mantenimientoSvc, authSvc)
 
 	// 3. Router + middleware.
 	r := chi.NewRouter()

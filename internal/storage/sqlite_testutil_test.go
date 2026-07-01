@@ -16,10 +16,23 @@ func abrirSQLiteMemoria(t *testing.T) *gorm.DB {
 	}
 	if err := db.AutoMigrate(
 		&models.Pieza{},
+		&models.Cliente{},
 		&models.Devolucion{},
 		&models.RegistroMantenimiento{},
 	); err != nil {
 		t.Fatalf("migrate: %v", err)
 	}
 	return db
+}
+
+func crearClienteSQLite(t *testing.T, almacen *AlmacenSQLite) models.Cliente {
+	t.Helper()
+	c, err := almacen.CrearCliente(models.Cliente{
+		Nombre: "Cliente Test",
+		Cedula: "0999999999",
+	})
+	if err != nil {
+		t.Fatalf("crear cliente: %v", err)
+	}
+	return c
 }

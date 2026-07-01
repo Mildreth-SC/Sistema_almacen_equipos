@@ -85,13 +85,13 @@ func (a *AlmacenSQLite) BorrarPieza(id string) bool {
 
 func (a *AlmacenSQLite) ListarDevoluciones() []models.Devolucion {
 	var lista []models.Devolucion
-	a.db.Preload("Pieza").Find(&lista)
+	a.db.Preload("Pieza").Preload("Cliente").Find(&lista)
 	return lista
 }
 
 func (a *AlmacenSQLite) BuscarDevolucionPorID(id string) (models.Devolucion, bool) {
 	var d models.Devolucion
-	if err := a.db.Preload("Pieza").First(&d, "id = ?", id).Error; err != nil {
+	if err := a.db.Preload("Pieza").Preload("Cliente").First(&d, "id = ?", id).Error; err != nil {
 		return models.Devolucion{}, false
 	}
 	return d, true
@@ -100,6 +100,7 @@ func (a *AlmacenSQLite) BuscarDevolucionPorID(id string) (models.Devolucion, boo
 func (a *AlmacenSQLite) CrearDevolucion(d models.Devolucion) models.Devolucion {
 	d.ID = uuid.New().String()
 	d.Pieza = models.Pieza{}
+	d.Cliente = models.Cliente{}
 	if d.FechaSolicitud.IsZero() {
 		d.FechaSolicitud = time.Now()
 	}
@@ -116,6 +117,7 @@ func (a *AlmacenSQLite) ActualizarDevolucion(id string, datos models.Devolucion)
 	}
 	datos.ID = id
 	datos.Pieza = models.Pieza{}
+	datos.Cliente = models.Cliente{}
 	if err := a.db.Save(&datos).Error; err != nil {
 		return models.Devolucion{}, false
 	}
@@ -134,14 +136,14 @@ func (a *AlmacenSQLite) BorrarDevolucion(id string) bool {
 // ListarMantenimientos devuelve todos los registros de mantenimiento.
 func (a *AlmacenSQLite) ListarMantenimientos() []models.RegistroMantenimiento {
 	var lista []models.RegistroMantenimiento
-	a.db.Preload("Pieza").Find(&lista)
+	a.db.Preload("Pieza").Preload("Cliente").Find(&lista)
 	return lista
 }
 
 // BuscarMantenimientoPorID busca un mantenimiento por su ID.
 func (a *AlmacenSQLite) BuscarMantenimientoPorID(id string) (models.RegistroMantenimiento, bool) {
 	var m models.RegistroMantenimiento
-	if err := a.db.Preload("Pieza").First(&m, "id = ?", id).Error; err != nil {
+	if err := a.db.Preload("Pieza").Preload("Cliente").First(&m, "id = ?", id).Error; err != nil {
 		return models.RegistroMantenimiento{}, false
 	}
 	return m, true
@@ -151,6 +153,7 @@ func (a *AlmacenSQLite) BuscarMantenimientoPorID(id string) (models.RegistroMant
 func (a *AlmacenSQLite) CrearMantenimiento(m models.RegistroMantenimiento) models.RegistroMantenimiento {
 	m.ID = uuid.New().String()
 	m.Pieza = models.Pieza{}
+	m.Cliente = models.Cliente{}
 	if m.FechaIngreso.IsZero() {
 		m.FechaIngreso = time.Now()
 	}
@@ -168,6 +171,7 @@ func (a *AlmacenSQLite) ActualizarMantenimiento(id string, datos models.Registro
 	}
 	datos.ID = id
 	datos.Pieza = models.Pieza{}
+	datos.Cliente = models.Cliente{}
 	if err := a.db.Save(&datos).Error; err != nil {
 		return models.RegistroMantenimiento{}, false
 	}
@@ -182,11 +186,120 @@ func (a *AlmacenSQLite) BorrarMantenimiento(id string) bool {
 	return true
 }
 
+// --- Clientes ---
+
+func (a *AlmacenSQLite) ListarClientes() []models.Cliente {
+	var lista []models.Cliente
+	a.db.Order("nombre asc").Find(&lista)
+	return lista
+}
+
+func (a *AlmacenSQLite) BuscarClientePorID(id string) (models.Cliente, bool) {
+	var c models.Cliente
+	if err := a.db.First(&c, "id = ?", id).Error; err != nil {
+		return models.Cliente{}, false
+	}
+	return c, true
+}
+
+func (a *AlmacenSQLite) BuscarClientePorCedula(cedula string) (models.Cliente, bool) {
+	var c models.Cliente
+	if err := a.db.First(&c, "cedula = ?", cedula).Error; err != nil {
+		return models.Cliente{}, false
+	}
+	return c, true
+}
+
+func (a *AlmacenSQLite) CrearCliente(c models.Cliente) (models.Cliente, error) {
+	now := time.Now()
+	c.ID = uuid.New().String()
+	if c.FechaRegistro.IsZero() {
+		c.FechaRegistro = now
+	}
+	if err := a.db.Create(&c).Error; err != nil {
+		if esDuplicado(err) {
+			return models.Cliente{}, ErrDuplicado
+		}
+		return models.Cliente{}, err
+	}
+	return c, nil
+}
+
+func (a *AlmacenSQLite) ActualizarCliente(id string, datos models.Cliente) (models.Cliente, bool) {
+	var existente models.Cliente
+	if err := a.db.First(&existente, "id = ?", id).Error; err != nil {
+		return models.Cliente{}, false
+	}
+	datos.ID = id
+	if datos.FechaRegistro.IsZero() {
+		datos.FechaRegistro = existente.FechaRegistro
+	}
+	if err := a.db.Save(&datos).Error; err != nil {
+		return models.Cliente{}, false
+	}
+	return datos, true
+}
+
+func (a *AlmacenSQLite) BorrarCliente(id string) bool {
+	if err := a.db.Delete(&models.Cliente{}, "id = ?", id).Error; err != nil {
+		return false
+	}
+	return true
+}
+
 func (a *AlmacenSQLite) Sembrarvacio() {
 	now := time.Now()
+	var countClientes int64
+	a.db.Model(&models.Cliente{}).Count(&countClientes)
+	if countClientes > 0 {
+		return
+	}
+
+	clientes := []models.Cliente{
+		{
+			ID:            uuid.New().String(),
+			Nombre:        "María López",
+			Cedula:        "0923456789",
+			Telefono:      "0991234567",
+			Email:         "maria.lopez@email.com",
+			Direccion:     "Portoviejo, Cdla. Kennedy",
+			FechaRegistro: now,
+		},
+		{
+			ID:            uuid.New().String(),
+			Nombre:        "Carlos Ruiz",
+			Cedula:        "0912345678",
+			Telefono:      "0987654321",
+			Email:         "carlos.ruiz@email.com",
+			Direccion:     "Manta, Los Esteros",
+			FechaRegistro: now,
+		},
+		{
+			ID:            uuid.New().String(),
+			Nombre:        "Pedro Sánchez",
+			Cedula:        "0934567890",
+			Telefono:      "0991112233",
+			Email:         "pedro.sanchez@email.com",
+			Direccion:     "Portoviejo, Centro",
+			FechaRegistro: now,
+		},
+		{
+			ID:            uuid.New().String(),
+			Nombre:        "Ana Torres",
+			Cedula:        "0945678901",
+			Telefono:      "0976543210",
+			Email:         "ana.torres@email.com",
+			Direccion:     "Rocafuerte",
+			FechaRegistro: now,
+		},
+	}
+	a.db.Create(&clientes)
+
 	var countPiezas int64
 	a.db.Model(&models.Pieza{}).Count(&countPiezas)
-	if countPiezas == 0 {
+	if countPiezas > 0 {
+		return
+	}
 		p1 := models.Pieza{
 			ID:           uuid.New().String(),
 			NumeroSerial: "SN-SAM-LCD-001",
@@ -231,29 +344,27 @@ func (a *AlmacenSQLite) Sembrarvacio() {
 
 		devoluciones := []models.Devolucion{
 			{
-				ID:              uuid.New().String(),
-				PiezaID:         p1.ID,
-				ClienteNombre:   "María López",
-				ClienteTelefono: "0991234567",
-				NumeroFactura:   "FAC-2024-001",
-				Motivo:          models.MotivoDefectuoso,
-				Descripcion:     "Laptop no enciende",
-				Estado:          models.EstadoPendiente,
-				AtendidoPor:     "Mildreth G.",
-				FechaSolicitud:  now,
+				ID:             uuid.New().String(),
+				ClienteID:      clientes[0].ID,
+				PiezaID:        p1.ID,
+				NumeroFactura:  "FAC-2024-001",
+				Motivo:         models.MotivoDefectuoso,
+				Descripcion:    "Laptop no enciende",
+				Estado:         models.EstadoPendiente,
+				AtendidoPor:    "Mildreth G.",
+				FechaSolicitud: now,
 			},
 			{
-				ID:              uuid.New().String(),
-				PiezaID:         p1.ID,
-				ClienteNombre:   "Carlos Ruiz",
-				ClienteTelefono: "0987654321",
-				NumeroFactura:   "FAC-2024-002",
-				Motivo:          models.MotivoGarantia,
-				Descripcion:     "Pantalla con pixeles muertos",
-				Estado:          models.EstadoAprobada,
-				Resolucion:      "cambio",
-				AtendidoPor:     "Ivanna Z.",
-				FechaSolicitud:  now,
+				ID:             uuid.New().String(),
+				ClienteID:      clientes[1].ID,
+				PiezaID:        p1.ID,
+				NumeroFactura:  "FAC-2024-002",
+				Motivo:         models.MotivoGarantia,
+				Descripcion:    "Pantalla con pixeles muertos",
+				Estado:         models.EstadoAprobada,
+				Resolucion:     "cambio",
+				AtendidoPor:    "Ivanna Z.",
+				FechaSolicitud: now,
 			},
 		}
 		a.db.Create(&devoluciones)
@@ -261,9 +372,8 @@ func (a *AlmacenSQLite) Sembrarvacio() {
 		mantenimientos := []models.RegistroMantenimiento{
 			{
 				ID:                uuid.New().String(),
+				ClienteID:         clientes[2].ID,
 				PiezaID:           p2.ID,
-				ClienteNombre:     "Pedro Sánchez",
-				ClienteTelefono:   "0991112233",
 				EquipoDescripcion: "Laptop HP 15, negro",
 				NumeroSerial:      "HP-CLIENTE-9988",
 				FallaReportada:    "Teclado no responde",
@@ -278,8 +388,7 @@ func (a *AlmacenSQLite) Sembrarvacio() {
 			},
 			{
 				ID:                uuid.New().String(),
-				ClienteNombre:     "Ana Torres",
-				ClienteTelefono:   "0976543210",
+				ClienteID:         clientes[3].ID,
 				EquipoDescripcion: "Desktop Dell Optiplex",
 				NumeroSerial:      "DELL-5544",
 				FallaReportada:    "Lentitud general",
@@ -293,5 +402,4 @@ func (a *AlmacenSQLite) Sembrarvacio() {
 			},
 		}
 		a.db.Create(&mantenimientos)
-	}
 }

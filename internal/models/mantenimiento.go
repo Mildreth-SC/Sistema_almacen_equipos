@@ -4,7 +4,6 @@ package models
 
 import "time"
 
-// Tipos de mantenimiento disponibles en el sistema.
 type TipoMantenimiento string
 
 const (
@@ -12,7 +11,6 @@ const (
 	TipoCorrectivo TipoMantenimiento = "CORRECTIVO"
 )
 
-// Estados posibles de un mantenimiento.
 type EstadoMantenimiento string
 
 const (
@@ -25,10 +23,10 @@ const (
 // RegistroMantenimiento registra un equipo que entra al taller a reparar.
 type RegistroMantenimiento struct {
 	ID                string              `json:"id" gorm:"primaryKey"`
+	ClienteID         string              `json:"cliente_id" gorm:"not null;index"`
+	Cliente           Cliente             `json:"cliente,omitempty" gorm:"foreignKey:ClienteID;references:ID"`
 	PiezaID           string              `json:"pieza_id" gorm:"index"`
 	Pieza             Pieza               `json:"pieza,omitempty" gorm:"foreignKey:PiezaID;references:ID"`
-	ClienteNombre     string              `json:"cliente_nombre"`
-	ClienteTelefono   string              `json:"cliente_telefono"`
 	EquipoDescripcion string              `json:"equipo_descripcion"`
 	NumeroSerial      string              `json:"numero_serial"`
 	FallaReportada    string              `json:"falla_reportada"`
@@ -62,7 +60,6 @@ func EsEstadoMantenimientoValido(e EstadoMantenimiento) bool {
 	}
 }
 
-// TransicionMantenimientoValida verifica el flujo PENDIENTE → EN_PROCESO → LISTO → ENTREGADO.
 func TransicionMantenimientoValida(actual, nuevo EstadoMantenimiento) bool {
 	switch actual {
 	case MantenimientoPendiente:

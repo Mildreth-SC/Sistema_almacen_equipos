@@ -8,10 +8,9 @@ import (
 	"github.com/Mildreth-SC/Sistema_almacen_equipos/internal/storage"
 )
 
-func mantenimientoValido() models.RegistroMantenimiento {
+func mantenimientoValido(clienteID string) models.RegistroMantenimiento {
 	return models.RegistroMantenimiento{
-		ClienteNombre:     "Carlos Ruiz",
-		ClienteTelefono:   "0987654321",
+		ClienteID:         clienteID,
 		EquipoDescripcion: "Laptop HP 15, negro",
 		NumeroSerial:      "HP-9988",
 		FallaReportada:    "No enciende",
@@ -22,10 +21,17 @@ func mantenimientoValido() models.RegistroMantenimiento {
 	}
 }
 
-func TestMantenimientoService_AnticipoInvalido(t *testing.T) {
-	svc := NewMantenimientoService(storage.NewAlmacenMemoria(), storage.NewAlmacenMemoria())
+func setupMantenimiento(t *testing.T) (*MantenimientoService, models.Cliente) {
+	t.Helper()
+	repo := storage.NewAlmacenMemoria()
+	cliente := crearClienteTest(t, repo)
+	return NewMantenimientoService(repo, repo, repo), cliente
+}
 
-	m := mantenimientoValido()
+func TestMantenimientoService_AnticipoInvalido(t *testing.T) {
+	svc, cliente := setupMantenimiento(t)
+
+	m := mantenimientoValido(cliente.ID)
 	m.Anticipo = 60
 
 	_, err := svc.Crear(m)
@@ -35,9 +41,9 @@ func TestMantenimientoService_AnticipoInvalido(t *testing.T) {
 }
 
 func TestMantenimientoService_TipoInvalido(t *testing.T) {
-	svc := NewMantenimientoService(storage.NewAlmacenMemoria(), storage.NewAlmacenMemoria())
+	svc, cliente := setupMantenimiento(t)
 
-	m := mantenimientoValido()
+	m := mantenimientoValido(cliente.ID)
 	m.Tipo = "REVISION"
 
 	_, err := svc.Crear(m)
@@ -47,9 +53,9 @@ func TestMantenimientoService_TipoInvalido(t *testing.T) {
 }
 
 func TestMantenimientoService_SinPiezaID_Ok(t *testing.T) {
-	svc := NewMantenimientoService(storage.NewAlmacenMemoria(), storage.NewAlmacenMemoria())
+	svc, cliente := setupMantenimiento(t)
 
-	creado, err := svc.Crear(mantenimientoValido())
+	creado, err := svc.Crear(mantenimientoValido(cliente.ID))
 	if err != nil {
 		t.Fatalf("crear sin pieza_id: %v", err)
 	}
@@ -59,9 +65,9 @@ func TestMantenimientoService_SinPiezaID_Ok(t *testing.T) {
 }
 
 func TestMantenimientoService_CambiarEstado_FlujoCompleto(t *testing.T) {
-	svc := NewMantenimientoService(storage.NewAlmacenMemoria(), storage.NewAlmacenMemoria())
+	svc, cliente := setupMantenimiento(t)
 
-	creado, err := svc.Crear(mantenimientoValido())
+	creado, err := svc.Crear(mantenimientoValido(cliente.ID))
 	if err != nil {
 		t.Fatalf("crear: %v", err)
 	}
@@ -92,9 +98,9 @@ func TestMantenimientoService_CambiarEstado_FlujoCompleto(t *testing.T) {
 }
 
 func TestMantenimientoService_CambiarEstado_TransicionInvalida(t *testing.T) {
-	svc := NewMantenimientoService(storage.NewAlmacenMemoria(), storage.NewAlmacenMemoria())
+	svc, cliente := setupMantenimiento(t)
 
-	creado, err := svc.Crear(mantenimientoValido())
+	creado, err := svc.Crear(mantenimientoValido(cliente.ID))
 	if err != nil {
 		t.Fatalf("crear: %v", err)
 	}
@@ -109,14 +115,15 @@ func TestMantenimientoService_CambiarEstado_TransicionInvalida(t *testing.T) {
 func TestMantenimientoService_ConPiezaDelStock(t *testing.T) {
 	repo := storage.NewAlmacenMemoria()
 	piezaSvc := NewPiezaService(repo)
-	manSvc := NewMantenimientoService(repo, repo)
+	cliente := crearClienteTest(t, repo)
+	manSvc := NewMantenimientoService(repo, repo, repo)
 
 	pieza, err := piezaSvc.Crear(piezaValida())
 	if err != nil {
 		t.Fatalf("crear pieza: %v", err)
 	}
 
-	m := mantenimientoValido()
+	m := mantenimientoValido(cliente.ID)
 	m.PiezaID = pieza.ID
 
 	creado, err := manSvc.Crear(m)
@@ -129,9 +136,9 @@ func TestMantenimientoService_ConPiezaDelStock(t *testing.T) {
 }
 
 func TestMantenimientoService_ListarPorEstado(t *testing.T) {
-	svc := NewMantenimientoService(storage.NewAlmacenMemoria(), storage.NewAlmacenMemoria())
+	svc, cliente := setupMantenimiento(t)
 
-	if _, err := svc.Crear(mantenimientoValido()); err != nil {
+	if _, err := svc.Crear(mantenimientoValido(cliente.ID)); err != nil {
 		t.Fatalf("crear: %v", err)
 	}
 

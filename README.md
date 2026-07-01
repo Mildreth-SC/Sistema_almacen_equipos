@@ -43,7 +43,9 @@ internal/handlers/       → HTTP/JSON
 internal/middleware/     → CORS + Auth JWT
 ```
 
-Los tres módulos comparten el catálogo de **Pieza** mediante `pieza_id` en devoluciones y mantenimientos.
+Los tres módulos comparten el catálogo de **Pieza** (`pieza_id`) y **Cliente** (`cliente_id`) en devoluciones y mantenimientos.
+
+**Usuario** = empleado de Portotech (login JWT). **Cliente** = persona que compra, devuelve o deja equipos en el taller.
 
 ## Cómo correrlo
 
@@ -118,6 +120,18 @@ DELETE /api/v1/inventario-piezas/{id}
 PATCH  /api/v1/inventario-piezas/{id}/stock   →  {"delta": 5}
 ```
 
+### Clientes (protegidos)
+
+Catálogo de clientes de la tienda. Registrar un cliente antes de crear devoluciones o mantenimientos.
+
+```
+GET    /api/v1/clientes
+GET    /api/v1/clientes/{id}
+POST   /api/v1/clientes
+PUT    /api/v1/clientes/{id}
+DELETE /api/v1/clientes/{id}
+```
+
 ### Devoluciones — Ivanna Zamora (protegidos)
 
 ```
@@ -162,6 +176,18 @@ Avanzar estado (PATCH):
 
 ## Ejemplos de body JSON
 
+### Crear cliente
+
+```json
+{
+  "nombre": "María López",
+  "cedula": "0923456789",
+  "telefono": "0991234567",
+  "email": "maria.lopez@email.com",
+  "direccion": "Portoviejo, Cdla. Kennedy"
+}
+```
+
 ### Crear pieza
 
 ```json
@@ -188,8 +214,7 @@ Avanzar estado (PATCH):
 ```json
 {
   "pieza_id": "<uuid-de-pieza>",
-  "cliente_nombre": "María López",
-  "cliente_telefono": "0991234567",
+  "cliente_id": "<uuid-de-cliente>",
   "numero_factura": "FAC-2024-089",
   "motivo": "DEFECTUOSO",
   "descripcion": "RAM no reconocida por la BIOS"
@@ -202,8 +227,7 @@ Motivos: `DEFECTUOSO`, `EQUIVOCADO`, `GARANTIA`
 
 ```json
 {
-  "cliente_nombre": "Carlos Ruiz",
-  "cliente_telefono": "0987654321",
+  "cliente_id": "<uuid-de-cliente>",
   "equipo_descripcion": "Laptop HP 15, negro",
   "numero_serial": "HP-CLIENTE-9988",
   "falla_reportada": "No enciende",
