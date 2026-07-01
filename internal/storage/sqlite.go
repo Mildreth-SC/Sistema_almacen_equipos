@@ -10,8 +10,9 @@ import (
 )
 
 var (
-	ErrPiezaNoEncontrada = errors.New("pieza no encontrada")
-	ErrStockInsuficiente = errors.New("stock insuficiente")
+	ErrPiezaNoEncontrada   = errors.New("pieza no encontrada")
+	ErrStockInsuficiente   = errors.New("stock insuficiente")
+	ErrClienteNoEncontrado = errors.New("cliente no encontrado")
 )
 
 type AlmacenSQLite struct {
@@ -81,6 +82,53 @@ func (a *AlmacenSQLite) AjustarStockPieza(id string, delta int) (models.Pieza, e
 	return pieza, nil
 }
 
+// --- Clientes ---
+
+func (a *AlmacenSQLite) ListarClientes() []models.Cliente {
+	var clientes []models.Cliente
+	a.db.Find(&clientes)
+	return clientes
+}
+
+func (a *AlmacenSQLite) BuscarClientePorID(id string) (models.Cliente, bool) {
+	var c models.Cliente
+	if err := a.db.First(&c, "id = ?", id).Error; err != nil {
+		return models.Cliente{}, false
+	}
+	return c, true
+}
+
+func (a *AlmacenSQLite) CrearCliente(c models.Cliente) models.Cliente {
+	c.ID = uuid.New().String()
+	if c.FechaRegistro.IsZero() {
+		c.FechaRegistro = time.Now()
+	}
+	if err := a.db.Create(&c).Error; err != nil {
+		return models.Cliente{}
+	}
+	return c
+}
+
+func (a *AlmacenSQLite) ActualizarCliente(id string, datos models.Cliente) (models.Cliente, bool) {
+	var existente models.Cliente
+	if err := a.db.First(&existente, "id = ?", id).Error; err != nil {
+		return models.Cliente{}, false
+	}
+	datos.ID = id
+	if datos.FechaRegistro.IsZero() {
+		datos.FechaRegistro = existente.FechaRegistro
+	}
+	a.db.Save(&datos)
+	return datos, true
+}
+
+func (a *AlmacenSQLite) BorrarCliente(id string) bool {
+	if err := a.db.Delete(&models.Cliente{}, "id = ?", id).Error; err != nil {
+		return false
+	}
+	return true
+}
+
 // --- Devoluciones ---
 
 func (a *AlmacenSQLite) ListarDevoluciones() []models.Devolucion {
@@ -97,25 +145,35 @@ func (a *AlmacenSQLite) BuscarDevolucionPorID(id string) (models.Devolucion, boo
 	return d, true
 }
 
-func (a *AlmacenSQLite) CrearDevolucion(d models.Devolucion) models.Devolucion {
+func (a *AlmacenSQLite) CrearDevolucion(d models.Devolucion) (models.Devolucion, error) {
+	cliente, ok := a.BuscarClientePorID(d.ClienteID)
+	if !ok {
+		return models.Devolucion{}, ErrClienteNoEncontrado
+	}
 	d.ID = uuid.New().String()
+	d.ClienteNombre = cliente.Nombre
 	if d.FechaSolicitud.IsZero() {
 		d.FechaSolicitud = time.Now()
 	}
 	if err := a.db.Create(&d).Error; err != nil {
-		return models.Devolucion{}
+		return models.Devolucion{}, err
 	}
-	return d
+	return d, nil
 }
 
-func (a *AlmacenSQLite) ActualizarDevolucion(id string, datos models.Devolucion) (models.Devolucion, bool) {
+func (a *AlmacenSQLite) ActualizarDevolucion(id string, datos models.Devolucion) (models.Devolucion, bool, error) {
 	var existente models.Devolucion
 	if err := a.db.First(&existente, "id = ?", id).Error; err != nil {
-		return models.Devolucion{}, false
+		return models.Devolucion{}, false, nil
+	}
+	cliente, ok := a.BuscarClientePorID(datos.ClienteID)
+	if !ok {
+		return models.Devolucion{}, true, ErrClienteNoEncontrado
 	}
 	datos.ID = id
+	datos.ClienteNombre = cliente.Nombre
 	a.db.Save(&datos)
-	return datos, true
+	return datos, true, nil
 }
 
 func (a *AlmacenSQLite) BorrarDevolucion(id string) bool {
@@ -123,6 +181,12 @@ func (a *AlmacenSQLite) BorrarDevolucion(id string) bool {
 		return false
 	}
 	return true
+}
+
+func (a *AlmacenSQLite) ListarDevolucionesPorCliente(clienteID string) []models.Devolucion {
+	var lista []models.Devolucion
+	a.db.Where("cliente_id = ?", clienteID).Find(&lista)
+	return lista
 }
 
 // --- Mantenimientos ---
@@ -185,12 +249,32 @@ func (a *AlmacenSQLite) Sembrarvacio() {
 		a.db.Create(&piezas)
 	}
 
+	var countClientes int64
+	a.db.Model(&models.Cliente{}).Count(&countClientes)
+	clienteMariaID := uuid.New().String()
+	clienteCarlosID := uuid.New().String()
+	if countClientes == 0 {
+		clientes := []models.Cliente{
+			{ID: clienteMariaID, Nombre: "María López", Cedula: "1712345678", Telefono: "0991234567", Email: "maria.lopez@example.com", Direccion: "Av. Amazonas y Naciones Unidas, Quito", FechaRegistro: time.Now()},
+			{ID: clienteCarlosID, Nombre: "Carlos Ruiz", Cedula: "1798765432", Telefono: "0987654321", Email: "carlos.ruiz@example.com", Direccion: "Manta, Manabí", FechaRegistro: time.Now()},
+		}
+		a.db.Create(&clientes)
+	} else {
+		// Ya existen clientes (ej. tras un reinicio): reutilizamos los primeros dos para la siembra de devoluciones.
+		var existentes []models.Cliente
+		a.db.Order("fecha_registro asc").Limit(2).Find(&existentes)
+		if len(existentes) >= 2 {
+			clienteMariaID = existentes[0].ID
+			clienteCarlosID = existentes[1].ID
+		}
+	}
+
 	var countDev int64
 	a.db.Model(&models.Devolucion{}).Count(&countDev)
 	if countDev == 0 {
 		devoluciones := []models.Devolucion{
-			{ID: uuid.New().String(), OrdenID: "ORD-001", ProductoID: "PROD-101", ClienteNombre: "María López", Motivo: models.MotivoMalFuncionamiento, Descripcion: "Laptop no enciende", Estado: models.EstadoPendiente, FechaSolicitud: time.Now()},
-			{ID: uuid.New().String(), OrdenID: "ORD-002", ProductoID: "PROD-205", ClienteNombre: "Carlos Ruiz", Motivo: models.MotivoDefectoFabrica, Descripcion: "Pantalla con pixeles muertos", Estado: models.EstadoEnRevision, FechaSolicitud: time.Now()},
+			{ID: uuid.New().String(), OrdenID: "ORD-001", ProductoID: "PROD-101", ClienteID: clienteMariaID, ClienteNombre: "María López", Motivo: models.MotivoMalFuncionamiento, Descripcion: "Laptop no enciende", Estado: models.EstadoPendiente, FechaSolicitud: time.Now()},
+			{ID: uuid.New().String(), OrdenID: "ORD-002", ProductoID: "PROD-205", ClienteID: clienteCarlosID, ClienteNombre: "Carlos Ruiz", Motivo: models.MotivoDefectoFabrica, Descripcion: "Pantalla con pixeles muertos", Estado: models.EstadoEnRevision, FechaSolicitud: time.Now()},
 		}
 		a.db.Create(&devoluciones)
 	}

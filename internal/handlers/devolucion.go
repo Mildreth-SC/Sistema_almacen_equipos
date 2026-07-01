@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/Mildreth-SC/Sistema_almacen_equipos/internal/models"
@@ -18,8 +19,8 @@ func NewDevolucionHandler(a storage.Almacen) *DevolucionHandler {
 }
 
 func validarDevolucion(d models.Devolucion) string {
-	if d.ClienteNombre == "" {
-		return "el nombre del cliente es requerido"
+	if d.ClienteID == "" {
+		return "el cliente_id es requerido"
 	}
 	if d.OrdenID == "" {
 		return "el orden_id es requerido"
@@ -57,7 +58,15 @@ func (h *DevolucionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if d.Estado == "" {
 		d.Estado = models.EstadoPendiente
 	}
-	creada := h.almacen.CrearDevolucion(d)
+	creada, err := h.almacen.CrearDevolucion(d)
+	if err != nil {
+		if errors.Is(err, storage.ErrClienteNoEncontrado) {
+			writeError(w, http.StatusBadRequest, "el cliente_id no corresponde a ningun cliente registrado")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "no se pudo crear la devolucion")
+		return
+	}
 	writeJSON(w, http.StatusCreated, creada)
 }
 
@@ -72,9 +81,17 @@ func (h *DevolucionHandler) Update(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, msg)
 		return
 	}
-	actualizada, ok := h.almacen.ActualizarDevolucion(id, d)
+	actualizada, ok, err := h.almacen.ActualizarDevolucion(id, d)
 	if !ok {
 		writeError(w, http.StatusNotFound, "no encontrado")
+		return
+	}
+	if err != nil {
+		if errors.Is(err, storage.ErrClienteNoEncontrado) {
+			writeError(w, http.StatusBadRequest, "el cliente_id no corresponde a ningun cliente registrado")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "no se pudo actualizar la devolucion")
 		return
 	}
 	writeJSON(w, http.StatusOK, actualizada)

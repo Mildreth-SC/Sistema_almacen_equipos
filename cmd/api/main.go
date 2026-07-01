@@ -24,6 +24,7 @@ func main() {
 
 	if err := db.AutoMigrate(
 		&models.Pieza{},
+		&models.Cliente{},
 		&models.Devolucion{},
 		&models.RegistroMantenimiento{},
 	); err != nil {

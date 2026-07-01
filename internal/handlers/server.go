@@ -9,6 +9,7 @@ type Server struct {
 	inventarioPiezas *InventarioPiezasHandler
 	devoluciones     *DevolucionHandler
 	mantenimientos   *MantenimientoHandler
+	clientes         *ClienteHandler
 }
 
 func NewServer(a storage.Almacen) *Server {
@@ -16,6 +17,7 @@ func NewServer(a storage.Almacen) *Server {
 		inventarioPiezas: NewInventarioPiezasHandler(a),
 		devoluciones:     NewDevolucionHandler(a),
 		mantenimientos:   NewMantenimientoHandler(a),
+		clientes:         NewClienteHandler(a),
 	}
 }
 
@@ -27,6 +29,15 @@ func (s *Server) RegisterRoutes(r chi.Router) {
 		r.Put("/{id}", s.inventarioPiezas.Update)
 		r.Delete("/{id}", s.inventarioPiezas.Delete)
 		r.Patch("/{id}/stock", s.inventarioPiezas.AjustarStock)
+	})
+
+	r.Route("/api/v1/clientes", func(r chi.Router) {
+		r.Get("/", s.clientes.GetAll)
+		r.Get("/{id}", s.clientes.GetByID)
+		r.Post("/", s.clientes.Create)
+		r.Put("/{id}", s.clientes.Update)
+		r.Delete("/{id}", s.clientes.Delete)
+		r.Get("/{id}/devoluciones", s.clientes.GetDevoluciones)
 	})
 
 	r.Route("/api/v1/devoluciones", func(r chi.Router) {

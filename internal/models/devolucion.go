@@ -26,6 +26,7 @@ type Devolucion struct {
 	ID              string           `json:"id" gorm:"primaryKey"`
 	OrdenID         string           `json:"orden_id"`
 	ProductoID      string           `json:"producto_id"`
+	ClienteID       string           `json:"cliente_id"`
 	ClienteNombre   string           `json:"cliente_nombre"`
 	Motivo          MotivoDevolucion `json:"motivo"`
 	Descripcion     string           `json:"descripcion"`
